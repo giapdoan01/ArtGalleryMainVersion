@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>{{{ PRODUCT_NAME }}}</title>
+    <style>
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
+        
+        html, body { 
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            position: fixed;
+            background: #231F20;
+        }
+        
+        #unity-container { 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        #unity-canvas { 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: #231F20;
+        }
+        
+        #file-input { 
+            display: none; 
+        }
+        
+        /* LOADING SCREEN */
+        #loading-cover {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            background: #231F20;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        /* Logo container */
+        #loading-logo {
+            width: 150px;
+            height: 150px;
+            margin-bottom: 30px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        #loading-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+        
+        /* Loading text */
+        #loading-text {
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        /* Progress bar container */
+        #progress-container {
+            width: 300px;
+            height: 8px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        /* Progress bar fill */
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #00d2ff 0%, #3a47d5 100%);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(0,210,255,0.5);
+        }
+        
+        /* Progress percentage */
+        #progress-text {
+            color: white;
+            font-size: 18px;
+            margin-top: 15px;
+            font-weight: 500;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        /* Pulse animation */
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            margin-top: 20px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="unity-container">
+        <canvas id="unity-canvas"></canvas>
+        
+        <!-- LOADING SCREEN -->
+        <div id="loading-cover">
+            <!-- Logo (đặt file logo.png cùng thư mục index.html) -->
+            <div id="loading-logo">
+                <img src="TemplateData/logo.png" alt="Logo" onerror="this.style.display='none'" />
+            </div>
+            
+            <!-- Loading text -->
+            <div id="loading-text">Loading {{{ PRODUCT_NAME }}}...</div>
+            
+            <!-- Progress bar -->
+            <div id="progress-container">
+                <div id="progress-bar"></div>
+            </div>
+            
+            <!-- Progress percentage -->
+            <div id="progress-text"><span id="progress">0</span>%</div>
+            
+            <!-- Spinner -->
+            <div class="spinner"></div>
+        </div>
+    </div>
+    
+    <!-- Hidden file input for image picker -->
+    <input type="file" id="file-input" accept="image/png,image/jpeg,image/jpg" />
+    
+    <script>
+        console.log('[WebGL] Template loaded');
+        
+        var unityInstance = null;
+        var fileInput = document.getElementById('file-input');
+        var loadingCover = document.getElementById('loading-cover');
+        var progressElement = document.getElementById('progress');
+        var progressBar = document.getElementById('progress-bar');
+        
+        if (!fileInput) {
+            console.error('[WebGL] CRITICAL ERROR: file-input not found!');
+        } else {
+            console.log('[WebGL] ✓ file-input found');
+        }
+        
+        // Function được gọi từ Unity để mở file picker
+        window.OpenFilePicker = function() {
+            console.log('[WebGL] OpenFilePicker called from Unity');
+            if (fileInput) {
+                console.log('[WebGL] Clicking file input...');
+                fileInput.click();
+            } else {
+                console.error('[WebGL] file-input is null!');
+            }
+        };
+        
+        // Xử lý khi user chọn file
+        if (fileInput) {
+            fileInput.addEventListener('change', function(e) {
+                var file = e.target.files[0];
+                if (!file) {
+                    console.log('[WebGL] No file selected');
+                    return;
+                }
+                
+                console.log('[WebGL] File selected:', file.name, file.size, 'bytes');
+                
+                // Kiểm tra kích thước (giới hạn 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('File quá lớn! Vui lòng chọn ảnh dưới 10MB');
+                    fileInput.value = '';
+                    return;
+                }
+                
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                    var base64 = event.target.result;
+                    console.log('[WebGL] File loaded, base64 length:', base64.length);
+                    
+                    if (unityInstance) {
+                        try {
+                            // Tạo JSON object chứa metadata + base64 data
+                            var fileData = JSON.stringify({
+                                fileName: file.name,
+                                fileSize: file.size,
+                                base64Data: base64
+                            });
+                            
+                            console.log('[WebGL] Sending to Unity:', file.name, file.size, 'bytes');
+                            unityInstance.SendMessage('ImageEditPopup', 'OnWebGLFileSelected', fileData);
+                            console.log('[WebGL] ✓ Sent to Unity');
+                        } catch (err) {
+                            console.error('[WebGL] Error sending to Unity:', err);
+                        }
+                    } else {
+                        console.error('[WebGL] Unity instance not ready!');
+                    }
+                };
+                
+                reader.onerror = function(error) {
+                    console.error('[WebGL] FileReader error:', error);
+                };
+                
+                reader.readAsDataURL(file);
+                fileInput.value = ''; // Reset input
+            });
+        }
+        
+        // Unity WebGL config với template placeholders
+        var buildUrl = "Build";
+        var config = {
+            dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+            frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+            codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: "{{{ COMPANY_NAME }}}",
+            productName: "{{{ PRODUCT_NAME }}}",
+            productVersion: "{{{ PRODUCT_VERSION }}}",
+        };
+        
+        // Load Unity loader script
+        var script = document.createElement("script");
+        script.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
+        script.onload = function() {
+            console.log('[WebGL] Loader script loaded');
+            createUnityInstance(document.querySelector("#unity-canvas"), config, function(progress) {
+                var percent = Math.round(progress * 100);
+                progressElement.innerText = percent;
+                progressBar.style.width = percent + '%';
+            }).then(function(instance) {
+                unityInstance = instance;
+                
+                // Fade out loading screen
+                loadingCover.style.transition = 'opacity 0.5s ease';
+                loadingCover.style.opacity = '0';
+                
+                setTimeout(function() {
+                    loadingCover.style.display = 'none';
+                }, 500);
+                
+                console.log('[WebGL] ✓ Unity loaded successfully');
+            }).catch(function(message) {
+                console.error('[WebGL] Unity load failed:', message);
+                alert('Failed to load Unity: ' + message);
+            });
+        };
+        script.onerror = function() {
+            console.error('[WebGL] Failed to load Unity loader script');
+        };
+        document.body.appendChild(script);
+    </script>
+</body>
+</html>
