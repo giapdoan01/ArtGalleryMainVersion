@@ -216,6 +216,8 @@ GameObject:
   - component: {fileID: 4728740121895936726}
   - component: {fileID: 6593720996290446764}
   - component: {fileID: 2030352312059362282}
+  - component: {fileID: 2907283836584647494}
+  - component: {fileID: 6550214079877181293}
   m_Layer: 0
   m_Name: 3DModelPrefab
   m_TagString: Model3D
@@ -287,8 +289,8 @@ MonoBehaviour:
   useAutoFit: 1
   maxModelSize: 2
   fallbackScale: 0.01
-  transformButton: {fileID: 8286901571921605533}
-  removeButton: {fileID: 5942899897330813853}
+  transformButton: {fileID: 0}
+  removeButton: {fileID: 0}
   gizmo: {fileID: 4728740121895936726}
   outlineMaterial: {fileID: 0}
   outlineScaleProperty: 
@@ -310,6 +312,40 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Model3DController
   model3DInfo: {fileID: 0}
   showDebug: 1
+--- !u!114 &2907283836584647494
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5939856086031125098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8799d4ddd1cd64b418734b8ffb8929ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIBillboard
+  uiTransform: {fileID: 0}
+  sphereRadius: 3
+  hideWhenPlayerFar: 0
+  maxVisibleDistance: 10
+  moveSpeed: 10
+  rotationSpeed: 10
+  rotationOffset: {x: 0, y: 0, z: 0}
+  showDebug: 0
+  showGizmos: 1
+--- !u!114 &6550214079877181293
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5939856086031125098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27631a2ab42cf3d41b3782a7aed74207, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Model3DRotate
+  rotateSpeed: 15
 --- !u!1 &6890519037693330812
 GameObject:
   m_ObjectHideFlags: 0
@@ -873,7 +909,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &4289630219054046769
 RectTransform:
   m_ObjectHideFlags: 0

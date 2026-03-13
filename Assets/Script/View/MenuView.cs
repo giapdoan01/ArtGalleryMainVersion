@@ -1,33 +1,60 @@
+// ═══════════════════════════════════════════════════════════════════
+// MenuView.cs
+// ═══════════════════════════════════════════════════════════════════
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System;
 
-/// <summary>
-/// View cho menu — không còn phụ thuộc RPM, bỏ SetAvatarAnimator async
-/// </summary>
 public class MenuView : MonoBehaviour
 {
     [Header("UI References")]
-    [SerializeField] private TMP_InputField      nameInput;
-    [SerializeField] private TextMeshProUGUI     statusText;
-    [SerializeField] private Button              multiPlayerButton;
-    [SerializeField] private Button              singlePlayerButton;
-    [SerializeField] private GameObject          UIInPlay;
+    [SerializeField] private TMP_InputField nameInput;
+    [SerializeField] private TextMeshProUGUI statusText;
+    [SerializeField] private GameObject UIInPlay;
+
+    [Header("Mode Selection")]
+    [SerializeField] private Button multiPlayerButton;
+    [SerializeField] private Button singlePlayerButton;
+    [SerializeField] private Button startButton;
+
+    [Header("Mode Indicator")]
+    [Tooltip("GameObject sẽ trượt sang trái/phải để chỉ mode đang chọn")]
+    [SerializeField] private RectTransform moveElement;
+    [SerializeField] private float posXMultiPlayer = 160f;
+    [SerializeField] private float posXSinglePlayer = -162f;
+    [SerializeField] private float moveSpeed = 10f;   // lerp speed
 
     // ─── Events ────────────────────────────────────
     public event Action<string> OnNameChanged;
-    public event Action         OnMultiPlayerButtonClicked;
-    public event Action         OnSinglePlayerButtonClicked;
+    public event Action OnMultiPlayerModeSelected;   // ← chỉ chọn mode
+    public event Action OnSinglePlayerModeSelected;  // ← chỉ chọn mode
+    public event Action OnStartButtonClicked;        // ← mới: trigger vào game
 
-    // ═══════════════════════════════════════════════
+    // ─── State ─────────────────────────────────────
+    private bool isMoving = false;
+    private float targetPosX = 0f;
+
+    // ════════════════════════════════════════════════
     // LIFECYCLE
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════
 
     private void Awake()
     {
         ValidateComponents();
         if (UIInPlay != null) MoveUIInPlayOffscreen();
+
+        // ✅ Mặc định chọn SinglePlayer ngay từ đầu
+        if (moveElement != null)
+        {
+            Vector2 pos = moveElement.anchoredPosition;
+            pos.x = posXSinglePlayer;
+            moveElement.anchoredPosition = pos;
+            targetPosX = posXSinglePlayer;
+        }
+
+        // ✅ Start button hiện sẵn (vì đã có mode mặc định)
+        if (startButton != null) startButton.gameObject.SetActive(true);
     }
 
     private void Start()
@@ -35,88 +62,186 @@ public class MenuView : MonoBehaviour
         SetupUIListeners();
     }
 
-    private void OnDestroy()
+    private void Update()
     {
-        if (nameInput          != null) nameInput.onValueChanged.RemoveAllListeners();
-        if (multiPlayerButton  != null) multiPlayerButton.onClick.RemoveAllListeners();
-        if (singlePlayerButton != null) singlePlayerButton.onClick.RemoveAllListeners();
+        UpdateMoveElement();
     }
 
-    // ═══════════════════════════════════════════════
+    private void OnDestroy()
+    {
+        if (nameInput != null) nameInput.onValueChanged.RemoveAllListeners();
+        if (multiPlayerButton != null) multiPlayerButton.onClick.RemoveAllListeners();
+        if (singlePlayerButton != null) singlePlayerButton.onClick.RemoveAllListeners();
+        if (startButton != null) startButton.onClick.RemoveAllListeners();
+    }
+
+    // ════════════════════════════════════════════════
     // SETUP
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════
 
     private void ValidateComponents()
     {
-        if (nameInput          == null) Debug.LogError("[MenuView] nameInput not assigned!");
-        if (statusText         == null) Debug.LogError("[MenuView] statusText not assigned!");
-        if (multiPlayerButton  == null) Debug.LogError("[MenuView] multiPlayerButton not assigned!");
+        if (nameInput == null) Debug.LogError("[MenuView] nameInput not assigned!");
+        if (statusText == null) Debug.LogError("[MenuView] statusText not assigned!");
+        if (multiPlayerButton == null) Debug.LogError("[MenuView] multiPlayerButton not assigned!");
         if (singlePlayerButton == null) Debug.LogError("[MenuView] singlePlayerButton not assigned!");
-        if (UIInPlay           == null) Debug.LogWarning("[MenuView] UIInPlay not assigned!");
+        if (startButton == null) Debug.LogError("[MenuView] startButton not assigned!");
+        if (moveElement == null) Debug.LogWarning("[MenuView] moveElement not assigned!");
+        if (UIInPlay == null) Debug.LogWarning("[MenuView] UIInPlay not assigned!");
     }
 
     private void SetupUIListeners()
     {
-        if (nameInput          != null) nameInput.onValueChanged.AddListener(n => OnNameChanged?.Invoke(n));
-        if (multiPlayerButton  != null) multiPlayerButton.onClick.AddListener(() => OnMultiPlayerButtonClicked?.Invoke());
-        if (singlePlayerButton != null) singlePlayerButton.onClick.AddListener(() => OnSinglePlayerButtonClicked?.Invoke());
+        if (nameInput != null)
+            nameInput.onValueChanged.AddListener(n => OnNameChanged?.Invoke(n));
+
+        if (multiPlayerButton != null)
+            multiPlayerButton.onClick.AddListener(OnMultiPlayerClicked);
+
+        if (singlePlayerButton != null)
+            singlePlayerButton.onClick.AddListener(OnSinglePlayerClicked);
+
+        if (startButton != null)
+            startButton.onClick.AddListener(OnStartClicked);
     }
 
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════
+    // BUTTON HANDLERS
+    // ════════════════════════════════════════════════
+
+    private void OnMultiPlayerClicked()
+    {
+        // Di chuyển indicator sang Multiplayer
+        SetMoveElementTarget(posXMultiPlayer);
+
+        // Hiện Start button
+        ShowStartButton(true);
+
+        // Notify controller
+        OnMultiPlayerModeSelected?.Invoke();
+    }
+
+    private void OnSinglePlayerClicked()
+    {
+        // Di chuyển indicator sang SinglePlayer
+        SetMoveElementTarget(posXSinglePlayer);
+
+        // Hiện Start button
+        ShowStartButton(true);
+
+        // Notify controller
+        OnSinglePlayerModeSelected?.Invoke();
+    }
+
+    private void OnStartClicked()
+    {
+        // Disable nút tránh double-click
+        if (startButton != null) startButton.interactable = false;
+
+        OnStartButtonClicked?.Invoke();
+    }
+
+    // ════════════════════════════════════════════════
+    // MOVE ELEMENT
+    // ════════════════════════════════════════════════
+
+    private void SetMoveElementTarget(float posX)
+    {
+        if (moveElement == null) return;
+        targetPosX = posX;
+        isMoving = true;
+    }
+
+    private void UpdateMoveElement()
+    {
+        if (!isMoving || moveElement == null) return;
+
+        Vector2 pos = moveElement.anchoredPosition;
+        pos.x = Mathf.Lerp(pos.x, targetPosX, Time.deltaTime * moveSpeed);
+        moveElement.anchoredPosition = pos;
+
+        // Dừng lerp khi đủ gần
+        if (Mathf.Abs(pos.x - targetPosX) < 0.5f)
+        {
+            pos.x = targetPosX;
+            moveElement.anchoredPosition = pos;
+            isMoving = false;
+        }
+    }
+
+    /// <summary>Snap ngay không lerp — dùng khi reset menu.</summary>
+    public void SnapMoveElement(float posX)
+    {
+        if (moveElement == null) return;
+        Vector2 pos = moveElement.anchoredPosition;
+        pos.x = posX;
+        moveElement.anchoredPosition = pos;
+        targetPosX = posX;
+        isMoving = false;
+    }
+
+    // ════════════════════════════════════════════════
+    // START BUTTON
+    // ════════════════════════════════════════════════
+
+    public void ShowStartButton(bool show)
+    {
+        if (startButton == null) return;
+        startButton.gameObject.SetActive(show);
+        startButton.interactable = show;
+    }
+
+    public void SetStartButtonInteractable(bool interactable)
+    {
+        if (startButton != null) startButton.interactable = interactable;
+    }
+
+    // ════════════════════════════════════════════════
     // PUBLIC API — Player Name
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════
 
-    public string GetPlayerName()            => nameInput != null ? nameInput.text : "";
-    public void   SetPlayerName(string name) { if (nameInput != null) nameInput.text = name; }
+    public string GetPlayerName() => nameInput != null ? nameInput.text : "";
+    public void SetPlayerName(string name) { if (nameInput != null) nameInput.text = name; }
 
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════
     // PUBLIC API — Status & Buttons
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════
 
     public void UpdateStatusText(string status)
     {
         if (statusText != null) statusText.text = status;
     }
 
-    public void SetPlayButtonsInteractable(bool interactable)
+    public void SetModeButtonsInteractable(bool interactable)
     {
-        if (multiPlayerButton  != null) multiPlayerButton.interactable  = interactable;
+        if (multiPlayerButton != null) multiPlayerButton.interactable = interactable;
         if (singlePlayerButton != null) singlePlayerButton.interactable = interactable;
     }
 
-    // ═══════════════════════════════════════════════
-    // PUBLIC API — Reset (gọi khi LeaveGame)
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════
+    // PUBLIC API — Reset
+    // ════════════════════════════════════════════════
 
-    /// <summary>
-    /// Reset toàn bộ view về trạng thái ban đầu.
-    /// Được gọi bởi MenuController.ResetToMenuState().
-    /// </summary>
     public void ResetView(string playerName = "")
     {
-        // ✅ Re-enable cả 2 nút chọn chế độ chơi
-        SetPlayButtonsInteractable(true);
-
-        // ✅ Reset status text về mặc định
+        SetModeButtonsInteractable(true);
         UpdateStatusText("Chọn avatar và nhập tên để bắt đầu!");
 
-        // ✅ Restore tên người chơi nếu có
         if (!string.IsNullOrEmpty(playerName))
             SetPlayerName(playerName);
 
-        // ✅ Ẩn in-game UI
-        HideInGameUI();
+        // ✅ Reset về SinglePlayer mặc định + hiện Start button
+        ShowStartButton(true);                   // ← đổi false → true
+        SnapMoveElement(posXSinglePlayer);
 
-        Debug.Log("[MenuView] View reset to initial state ✅");
+        HideInGameUI();
+        Debug.Log("[MenuView] View reset ✅");
     }
 
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════
     // PUBLIC API — Avatar Animator
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════
 
-    /// <summary>
-    /// Đặt Animator cho prefab avatar (gọi ngay, không cần async).
-    /// </summary>
     public void SetAvatarAnimator(GameObject avatar, RuntimeAnimatorController animatorController)
     {
         if (avatar == null || animatorController == null) return;
@@ -128,9 +253,9 @@ public class MenuView : MonoBehaviour
         }
     }
 
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════
     // IN-GAME UI
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════
 
     public void ShowInGameUI()
     {
@@ -145,9 +270,9 @@ public class MenuView : MonoBehaviour
         SetRectPos(UIInPlay, new Vector2(-3000f, 0f));
     }
 
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════
     // HELPERS
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════
 
     private void MoveUIInPlayOffscreen() => SetRectPos(UIInPlay, new Vector2(-3000f, 0f));
 
@@ -155,9 +280,9 @@ public class MenuView : MonoBehaviour
     {
         RectTransform rt = go.GetComponent<RectTransform>();
         if (rt == null) return;
-        rt.anchorMin        = new Vector2(0.5f, 0.5f);
-        rt.anchorMax        = new Vector2(0.5f, 0.5f);
-        rt.pivot            = new Vector2(0.5f, 0.5f);
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
         rt.anchoredPosition = pos;
     }
 }

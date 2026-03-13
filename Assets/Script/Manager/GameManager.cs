@@ -77,9 +77,14 @@ public class GameManager : MonoBehaviour
 
         if (menuView != null)
         {
-            menuView.OnSinglePlayerButtonClicked += HandleSinglePlayerMode;
-            menuView.OnMultiPlayerButtonClicked  += HandleMultiPlayerMode;
-            if (showDebug) Debug.Log("[GameManager] Registered MenuView events");
+            // ✅ Subscribe đúng event mới — chỉ để track mode
+            menuView.OnSinglePlayerModeSelected += HandleSinglePlayerMode;
+            menuView.OnMultiPlayerModeSelected  += HandleMultiPlayerMode;
+
+            // ✅ Subscribe Start button — đây mới là lúc game thực sự bắt đầu
+            menuView.OnStartButtonClicked += HandleGameStarted;
+
+            if (showDebug) Debug.Log("[GameManager] Registered MenuView events ✅");
         }
         else Debug.LogWarning("[GameManager] MenuView not found!");
     }
@@ -92,8 +97,9 @@ public class GameManager : MonoBehaviour
 
         if (menuView != null)
         {
-            menuView.OnSinglePlayerButtonClicked -= HandleSinglePlayerMode;
-            menuView.OnMultiPlayerButtonClicked  -= HandleMultiPlayerMode;
+            menuView.OnSinglePlayerModeSelected -= HandleSinglePlayerMode;
+            menuView.OnMultiPlayerModeSelected  -= HandleMultiPlayerMode;
+            menuView.OnStartButtonClicked       -= HandleGameStarted;
         }
     }
 
@@ -101,18 +107,34 @@ public class GameManager : MonoBehaviour
     // GAME MODE
     // ═══════════════════════════════════════════════
 
+    /// <summary>
+    /// Gọi khi người chơi chọn mode — chỉ lưu state, chưa làm gì khác.
+    /// </summary>
     private void HandleSinglePlayerMode()
     {
         isSinglePlayerMode = true;
-        SetChatButtonVisible(false);
-        if (showDebug) Debug.Log("[GameManager] Single Player mode");
+        if (showDebug) Debug.Log("[GameManager] Mode selected: Single Player");
     }
 
+    /// <summary>
+    /// Gọi khi người chơi chọn mode — chỉ lưu state, chưa làm gì khác.
+    /// </summary>
     private void HandleMultiPlayerMode()
     {
         isSinglePlayerMode = false;
-        SetChatButtonVisible(true);
-        if (showDebug) Debug.Log("[GameManager] Multi Player mode");
+        if (showDebug) Debug.Log("[GameManager] Mode selected: Multi Player");
+    }
+
+    /// <summary>
+    /// Gọi khi người chơi ấn Start — lúc này mới apply logic chat button
+    /// vì đã chắc chắn mode được chọn.
+    /// </summary>
+    private void HandleGameStarted()
+    {
+        // ✅ Apply chat button visibility dựa trên mode đã chọn
+        SetChatButtonVisible(!isSinglePlayerMode);
+
+        if (showDebug) Debug.Log($"[GameManager] Game started — mode={(isSinglePlayerMode ? "Single" : "Multi")}, chatVisible={!isSinglePlayerMode}");
     }
 
     private void SetChatButtonVisible(bool visible)
@@ -201,14 +223,9 @@ public class GameManager : MonoBehaviour
     public void CloseMoveButtonGuide()
     {
         if (moveButtonGuide == null) return;
-
         isManuallyOpened = false;
 
-        if (hideMoveGuideCoroutine != null)
-        {
-            StopCoroutine(hideMoveGuideCoroutine);
-            hideMoveGuideCoroutine = null;
-        }
+        if (hideMoveGuideCoroutine != null) { StopCoroutine(hideMoveGuideCoroutine); hideMoveGuideCoroutine = null; }
 
         moveButtonGuide.SetActive(false);
         if (showDebug) Debug.Log("[GameManager] Move guide closed manually");
@@ -217,14 +234,9 @@ public class GameManager : MonoBehaviour
     public void OpenMoveButtonGuide()
     {
         if (moveButtonGuide == null) return;
-
         isManuallyOpened = true;
 
-        if (hideMoveGuideCoroutine != null)
-        {
-            StopCoroutine(hideMoveGuideCoroutine);
-            hideMoveGuideCoroutine = null;
-        }
+        if (hideMoveGuideCoroutine != null) { StopCoroutine(hideMoveGuideCoroutine); hideMoveGuideCoroutine = null; }
 
         moveButtonGuide.SetActive(true);
         if (showDebug) Debug.Log("[GameManager] Move guide opened manually (stays until closed)");
@@ -259,15 +271,13 @@ public class GameManager : MonoBehaviour
         if (moveButtonGuide != null && moveButtonGuide.activeSelf)
             moveButtonGuide.SetActive(false);
 
-        if (hideMoveGuideCoroutine != null)
-        {
-            StopCoroutine(hideMoveGuideCoroutine);
-            hideMoveGuideCoroutine = null;
-        }
+        if (hideMoveGuideCoroutine != null) { StopCoroutine(hideMoveGuideCoroutine); hideMoveGuideCoroutine = null; }
 
         isManuallyOpened = false;
 
-        // ✅ Detach MiniCamera TRƯỚC khi destroy player
+        // ✅ Reset mode về default khi leave
+        isSinglePlayerMode = false;
+
         DetachFollowMapCamera();
 
         // ─── Disconnect NetworkManager ───────────────
@@ -287,7 +297,6 @@ public class GameManager : MonoBehaviour
                 nm.OnDisconnected -= onDisconnectOnce;
             };
             nm.OnDisconnected += onDisconnectOnce;
-
             nm.Disconnect();
 
             float t = Time.time;
@@ -306,7 +315,6 @@ public class GameManager : MonoBehaviour
 
         DestroyAllPlayerObjects();
 
-        // ✅ Clear remote players (không có tag "Player") qua PlayerSpawner
 #pragma warning disable CS0618
         PlayerSpawner spawner = FindObjectOfType<PlayerSpawner>();
 #pragma warning restore CS0618
@@ -332,40 +340,25 @@ public class GameManager : MonoBehaviour
     }
 
     // ═══════════════════════════════════════════════
-    // FOLLOW MAP CAMERA — DETACH ON LEAVE
+    // FOLLOW MAP CAMERA
     // ═══════════════════════════════════════════════
 
-    /// <summary>
-    /// Detach MiniCamera khỏi Player trước khi destroy.
-    /// Reset về position/rotation như trong Inspector (ảnh: pos -0.27, 7.17, -4.2 | rot 45, 0, 0).
-    /// </summary>
     private void DetachFollowMapCamera()
     {
 #pragma warning disable CS0618
         PlayerSpawner spawner = FindObjectOfType<PlayerSpawner>();
 #pragma warning restore CS0618
 
-        if (spawner == null)
-        {
-            if (showDebug) Debug.LogWarning("[GameManager] PlayerSpawner not found, cannot detach MiniCamera");
-            return;
-        }
+        if (spawner == null) { if (showDebug) Debug.LogWarning("[GameManager] PlayerSpawner not found"); return; }
 
         GameObject miniCam = spawner.GetFollowMapCamera();
-        if (miniCam == null)
-        {
-            if (showDebug) Debug.LogWarning("[GameManager] FollowMapCamera is null, skip detach");
-            return;
-        }
+        if (miniCam == null) { if (showDebug) Debug.LogWarning("[GameManager] FollowMapCamera is null"); return; }
 
-        // ✅ Detach khỏi Player — về scene root
         miniCam.transform.SetParent(null, true);
-
-        // ✅ Reset về vị trí mặc định (theo ảnh Inspector)
         miniCam.transform.position    = new Vector3(-0.27f, 7.17f, -4.2f);
         miniCam.transform.eulerAngles = new Vector3(45f, 0f, 0f);
 
-        if (showDebug) Debug.Log("[GameManager] FollowMapCamera detached & reset to default position ✅");
+        if (showDebug) Debug.Log("[GameManager] FollowMapCamera detached & reset ✅");
     }
 
     // ═══════════════════════════════════════════════
@@ -387,7 +380,6 @@ public class GameManager : MonoBehaviour
         {
             if (obj == null) continue;
             if (safeSet.Contains(obj)) { if (showDebug) Debug.Log($"[GameManager] Skip preview: {obj.name}"); continue; }
-            if (showDebug) Debug.Log($"[GameManager] Destroy: {obj.name}");
             Destroy(obj);
             count++;
         }

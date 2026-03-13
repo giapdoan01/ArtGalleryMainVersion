@@ -64,6 +64,8 @@ public class PreviewModel3D : MonoBehaviour
     // PUBLIC API
     // ════════════════════════════════════════════════
 
+    private Model3DRotate currentRotate;
+
     public void Show(Transform targetModel)
     {
         if (previewModel3DPanel != null)
@@ -71,6 +73,9 @@ public class PreviewModel3D : MonoBehaviour
 
         if (model3DCamera != null)
             model3DCamera.SetTarget(targetModel);
+
+        currentRotate = targetModel != null ? targetModel.GetComponentInChildren<Model3DRotate>() : null;
+        if (currentRotate != null) currentRotate.Stop();
 
         if (showDebug)
             Debug.Log($"[PreviewModel3D] Showing preview for: {targetModel?.name ?? "null"}");
@@ -84,6 +89,12 @@ public class PreviewModel3D : MonoBehaviour
         // ✅ Restore layer của target về Default khi đóng
         if (model3DCamera != null)
             model3DCamera.ClearTarget();
+
+        if (currentRotate != null)
+        {
+            currentRotate.Resume();
+            currentRotate = null;
+        }
 
         if (showDebug)
             Debug.Log("[PreviewModel3D] Panel hidden");
