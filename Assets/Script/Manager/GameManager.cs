@@ -24,7 +24,7 @@ public class GameManager : MonoBehaviour
     // ─── State ─────────────────────────────────────
     private bool      isSinglePlayerMode   = false;
     private bool      isLeavingGame        = false;
-    private bool      isManuallyOpened     = false;   // ✅ true = user bật tay → không auto-hide
+    private bool      isManuallyOpened     = false;
     private Coroutine hideMoveGuideCoroutine;
 
     public static GameManager Instance { get; private set; }
@@ -168,18 +168,13 @@ public class GameManager : MonoBehaviour
             Debug.LogWarning("[GameManager] openMoveButtonGuideButton not assigned!");
     }
 
-    /// <summary>
-    /// Auto-show khi game bắt đầu — hiện 10s rồi tự ẩn.
-    /// Không ảnh hưởng nếu user đang mở tay (isManuallyOpened).
-    /// </summary>
     private void StartMoveButtonGuideTimer()
     {
         if (moveButtonGuide == null) return;
 
-        isManuallyOpened = false;   // đây là auto-show, không phải manual
+        isManuallyOpened = false;
         moveButtonGuide.SetActive(true);
 
-        // Dừng timer cũ nếu có
         if (hideMoveGuideCoroutine != null) StopCoroutine(hideMoveGuideCoroutine);
         hideMoveGuideCoroutine = StartCoroutine(HideMoveGuideAfterDelay());
 
@@ -190,7 +185,6 @@ public class GameManager : MonoBehaviour
     {
         yield return new WaitForSeconds(moveButtonGuideDisplayTime);
 
-        // ✅ Chỉ tự ẩn nếu user KHÔNG bật tay
         if (!isManuallyOpened)
         {
             if (moveButtonGuide != null) moveButtonGuide.SetActive(false);
@@ -204,14 +198,11 @@ public class GameManager : MonoBehaviour
         hideMoveGuideCoroutine = null;
     }
 
-    /// <summary>
-    /// User bấm nút đóng — ẩn ngay, hủy timer nếu đang chạy.
-    /// </summary>
     public void CloseMoveButtonGuide()
     {
         if (moveButtonGuide == null) return;
 
-        isManuallyOpened = false;   // reset flag
+        isManuallyOpened = false;
 
         if (hideMoveGuideCoroutine != null)
         {
@@ -223,16 +214,12 @@ public class GameManager : MonoBehaviour
         if (showDebug) Debug.Log("[GameManager] Move guide closed manually");
     }
 
-    /// <summary>
-    /// User bấm nút mở — hiện mãi, KHÔNG chạy timer auto-hide.
-    /// </summary>
     public void OpenMoveButtonGuide()
     {
         if (moveButtonGuide == null) return;
 
-        isManuallyOpened = true;    // ✅ đánh dấu user bật tay → không auto-hide
+        isManuallyOpened = true;
 
-        // Hủy timer auto-hide nếu đang chạy
         if (hideMoveGuideCoroutine != null)
         {
             StopCoroutine(hideMoveGuideCoroutine);
@@ -278,7 +265,10 @@ public class GameManager : MonoBehaviour
             hideMoveGuideCoroutine = null;
         }
 
-        isManuallyOpened = false;   // reset khi leave
+        isManuallyOpened = false;
+
+        // ✅ Detach MiniCamera TRƯỚC khi destroy player
+        DetachFollowMapCamera();
 
         // ─── Disconnect NetworkManager ───────────────
         NetworkManager nm = NetworkManager.Instance;
@@ -316,6 +306,12 @@ public class GameManager : MonoBehaviour
 
         DestroyAllPlayerObjects();
 
+        // ✅ Clear remote players (không có tag "Player") qua PlayerSpawner
+#pragma warning disable CS0618
+        PlayerSpawner spawner = FindObjectOfType<PlayerSpawner>();
+#pragma warning restore CS0618
+        if (spawner != null) spawner.ClearAllPlayers();
+
         OnGameLeft?.Invoke();
         yield return null;
 
@@ -333,6 +329,43 @@ public class GameManager : MonoBehaviour
 
         isLeavingGame = false;
         if (showDebug) Debug.Log("[GameManager] LeaveGame complete");
+    }
+
+    // ═══════════════════════════════════════════════
+    // FOLLOW MAP CAMERA — DETACH ON LEAVE
+    // ═══════════════════════════════════════════════
+
+    /// <summary>
+    /// Detach MiniCamera khỏi Player trước khi destroy.
+    /// Reset về position/rotation như trong Inspector (ảnh: pos -0.27, 7.17, -4.2 | rot 45, 0, 0).
+    /// </summary>
+    private void DetachFollowMapCamera()
+    {
+#pragma warning disable CS0618
+        PlayerSpawner spawner = FindObjectOfType<PlayerSpawner>();
+#pragma warning restore CS0618
+
+        if (spawner == null)
+        {
+            if (showDebug) Debug.LogWarning("[GameManager] PlayerSpawner not found, cannot detach MiniCamera");
+            return;
+        }
+
+        GameObject miniCam = spawner.GetFollowMapCamera();
+        if (miniCam == null)
+        {
+            if (showDebug) Debug.LogWarning("[GameManager] FollowMapCamera is null, skip detach");
+            return;
+        }
+
+        // ✅ Detach khỏi Player — về scene root
+        miniCam.transform.SetParent(null, true);
+
+        // ✅ Reset về vị trí mặc định (theo ảnh Inspector)
+        miniCam.transform.position    = new Vector3(-0.27f, 7.17f, -4.2f);
+        miniCam.transform.eulerAngles = new Vector3(45f, 0f, 0f);
+
+        if (showDebug) Debug.Log("[GameManager] FollowMapCamera detached & reset to default position ✅");
     }
 
     // ═══════════════════════════════════════════════

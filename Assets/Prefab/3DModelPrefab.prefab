@@ -287,8 +287,8 @@ MonoBehaviour:
   useAutoFit: 1
   maxModelSize: 2
   fallbackScale: 0.01
-  transformButton: {fileID: 0}
-  removeButton: {fileID: 0}
+  transformButton: {fileID: 8286901571921605533}
+  removeButton: {fileID: 5942899897330813853}
   gizmo: {fileID: 4728740121895936726}
   outlineMaterial: {fileID: 0}
   outlineScaleProperty: 
@@ -873,7 +873,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &4289630219054046769
 RectTransform:
   m_ObjectHideFlags: 0

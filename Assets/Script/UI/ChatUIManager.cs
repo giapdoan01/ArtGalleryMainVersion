@@ -54,7 +54,7 @@ public class ChatUIManager : MonoBehaviour
         }
 
         // Welcome message
-        DisplaySystemMessage("Chat connected!");
+        DisplaySystemMessage("Đã kết nối");
     }
 
     private void OnDestroy()
@@ -149,7 +149,7 @@ public class ChatUIManager : MonoBehaviour
         
         if (messageText != null)
         {
-            messageText.text = $"<i>[System] {message}</i>";
+            messageText.text = $"<i>{message}</i>";
             messageText.color = systemMessageColor;
         }
 

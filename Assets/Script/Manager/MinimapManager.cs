@@ -3,13 +3,13 @@ using UnityEngine.UI;
 
 public class MinimapManager : MonoBehaviour
 {
-    [SerializeField] private RawImage smallMinimap;
+    [SerializeField] private RawImage  smallMinimap;
     [SerializeField] private GameObject smallMinimapBorder;
-    [SerializeField] private RawImage bigMinimap;
+    [SerializeField] private RawImage  bigMinimap;
     [SerializeField] private GameObject bigMinimapBorder;
-    [SerializeField] private Button   goToBigMinimapButton;
-    [SerializeField] private Button   goToSmallMinimapButton;
-
+    [SerializeField] private Button    goToBigMinimapButton;
+    [SerializeField] private Button    goToSmallMinimapButton;
+    [SerializeField] private Button    closeMapButton;       
 
     // ═══════════════════════════════════════════════
     // LIFECYCLE
@@ -17,7 +17,6 @@ public class MinimapManager : MonoBehaviour
 
     private void Start()
     {
-        // Gắn sự kiện
         goToBigMinimapButton.onClick.AddListener(ShowBigMinimap);
         goToSmallMinimapButton.onClick.AddListener(ShowSmallMinimap);
 
@@ -37,25 +36,35 @@ public class MinimapManager : MonoBehaviour
 
     private void ShowSmallMinimap()
     {
+        // Small
         smallMinimap.gameObject.SetActive(true);
+        smallMinimapBorder.SetActive(true);
         goToBigMinimapButton.gameObject.SetActive(true);
 
-        bigMinimap.gameObject.SetActive(false);
-        goToSmallMinimapButton.gameObject.SetActive(false);
+        // closeMapButton chỉ hiện khi ở chế độ small
+        if (closeMapButton != null)
+            closeMapButton.gameObject.SetActive(true);
 
-        smallMinimapBorder.SetActive(true);
+        // Big → ẩn
+        bigMinimap.gameObject.SetActive(false);
         bigMinimapBorder.SetActive(false);
+        goToSmallMinimapButton.gameObject.SetActive(false);
     }
 
     private void ShowBigMinimap()
     {
+        // Big
         bigMinimap.gameObject.SetActive(true);
+        bigMinimapBorder.SetActive(true);
         goToSmallMinimapButton.gameObject.SetActive(true);
 
-        smallMinimap.gameObject.SetActive(false);
-        goToBigMinimapButton.gameObject.SetActive(false);
+        // closeMapButton ẩn khi ở chế độ big
+        if (closeMapButton != null)
+            closeMapButton.gameObject.SetActive(false);
 
-        bigMinimapBorder.SetActive(true);
+        // Small → ẩn
+        smallMinimap.gameObject.SetActive(false);
         smallMinimapBorder.SetActive(false);
+        goToBigMinimapButton.gameObject.SetActive(false);
     }
 }

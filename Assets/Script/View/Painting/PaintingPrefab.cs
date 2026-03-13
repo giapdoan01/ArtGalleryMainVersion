@@ -31,9 +31,15 @@ public class PaintingPrefab : MonoBehaviour
     [SerializeField] private float fadeInSpeed     = 6.0f;
     [SerializeField] private float fadeOutSpeed    = 8.0f;
 
-    [Header("Painting Name Tag")]
-    [SerializeField] private TMP_Text nameTagText;    // ✅ Tên tranh
-    [SerializeField] private TMP_Text authorTagText;  // ✅ Tác giả
+    [Header("Painting Name Tag — Landscape")]
+    [SerializeField] private GameObject nameTagFrameLandscape;  // Background landscape
+    [SerializeField] private TMP_Text   landscapeNameTagText;
+    [SerializeField] private TMP_Text   landscapeAuthorTagText;
+
+    [Header("Painting Name Tag — Portrait")]
+    [SerializeField] private GameObject nameTagFramePortrait;   // Background portrait
+    [SerializeField] private TMP_Text   portraitNameTagText;
+    [SerializeField] private TMP_Text   portraitAuthorTagText;
 
     [Header("Settings")]
     [SerializeField] private float frameWidth    = 1f;
@@ -61,6 +67,9 @@ public class PaintingPrefab : MonoBehaviour
     private Painting     paintingData;
     private Texture2D    paintingTexture;
     public  Action<bool> onDisplayButton;
+
+    // ── Frame type hiện tại ──────────────────────────
+    private bool isLandscape = true;
 
     // ════════════════════════════════════════════════
     // LIFECYCLE
@@ -263,15 +272,14 @@ public class PaintingPrefab : MonoBehaviour
 
         SaveOriginalFrameScales();
         ApplyTexture(texture);
-        SetupFrame(painting.frame_type, texture);
+        SetupFrame(painting.frame_type, texture);  // ✅ set isLandscape trước
         SetupInfoCollider();
         SetupTransformButton();
         SetupRemoveButton();
         ApplyTransformFromData(painting);
         SetupTeleportPoint();
 
-        // ✅ Set name tag ngay khi setup — luôn hiển thị
-        SetNameTag(painting.name, painting.author);
+        SetNameTag(painting.name, painting.author); // ✅ gọi sau SetupFrame
     }
 
     private void SetupInfoCollider()
@@ -329,20 +337,39 @@ public class PaintingPrefab : MonoBehaviour
     }
 
     // ════════════════════════════════════════════════
-    // NAME TAG — luôn hiển thị, set 1 lần khi Setup
+    // NAME TAG
     // ════════════════════════════════════════════════
 
-    /// <summary>Set tên tranh và tác giả lên bảng tên — gọi 1 lần trong Setup()</summary>
+    /// <summary>
+    /// Set text + show/hide đúng NameTagFrame theo frame type.
+    /// Landscape → nameTagFrameLandscape show, nameTagFramePortrait hide
+    /// Portrait  → nameTagFramePortrait show,  nameTagFrameLandscape hide
+    /// </summary>
     private void SetNameTag(string paintingName, string author)
     {
-        if (nameTagText != null)
-            nameTagText.text = paintingName ?? string.Empty;
+        string displayAuthor = string.IsNullOrEmpty(author) ? "Unknown" : author;
 
-        if (authorTagText != null)
-            authorTagText.text = string.IsNullOrEmpty(author) ? "Unknown" : author;
+        if (isLandscape)
+        {
+            // ── Show landscape name tag frame ────────────────────────────
+            nameTagFrameLandscape?.SetActive(true);
+            nameTagFramePortrait?.SetActive(false);
+
+            if (landscapeNameTagText   != null) landscapeNameTagText.text   = paintingName ?? string.Empty;
+            if (landscapeAuthorTagText != null) landscapeAuthorTagText.text = displayAuthor;
+        }
+        else
+        {
+            // ── Show portrait name tag frame ─────────────────────────────
+            nameTagFrameLandscape?.SetActive(false);
+            nameTagFramePortrait?.SetActive(true);
+
+            if (portraitNameTagText   != null) portraitNameTagText.text   = paintingName ?? string.Empty;
+            if (portraitAuthorTagText != null) portraitAuthorTagText.text = displayAuthor;
+        }
 
         if (showDebug)
-            Debug.Log($"[PaintingPrefab] NameTag set → name='{paintingName}' author='{author}'");
+            Debug.Log($"[PaintingPrefab] NameTag ({(isLandscape ? "Landscape" : "Portrait")}) → name='{paintingName}' author='{author}'");
     }
 
     // ════════════════════════════════════════════════
@@ -396,6 +423,8 @@ public class PaintingPrefab : MonoBehaviour
 
         if (frameType == "wood_horizontal" || frameType == "landscape" || frameType == "1")
         {
+            isLandscape = true;
+
             landscapeFrame?.gameObject.SetActive(true);
             portraitFrame?.gameObject.SetActive(false);
 
@@ -415,6 +444,8 @@ public class PaintingPrefab : MonoBehaviour
         }
         else if (frameType == "wood_vertical" || frameType == "portrait" || frameType == "2")
         {
+            isLandscape = false;
+
             landscapeFrame?.gameObject.SetActive(false);
             portraitFrame?.gameObject.SetActive(true);
 
@@ -434,6 +465,8 @@ public class PaintingPrefab : MonoBehaviour
         }
         else
         {
+            isLandscape = true; // fallback → landscape
+
             if (showDebug) Debug.LogWarning($"[PaintingPrefab] Unknown frameType '{frameType}', fallback landscape");
 
             landscapeFrame?.gameObject.SetActive(true);

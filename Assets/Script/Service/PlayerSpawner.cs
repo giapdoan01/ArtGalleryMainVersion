@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -12,7 +13,8 @@ public class PlayerSpawner : MonoBehaviour
     [SerializeField] private Transform[] spawnPoints;
 
     [Header("Map Settings")]
-    [SerializeField] private GameObject followMapCamera; 
+    [SerializeField] private GameObject followMapCamera;
+
     [Header("Update Settings")]
     [SerializeField] private float checkInterval = 0.5f;
 
@@ -24,6 +26,13 @@ public class PlayerSpawner : MonoBehaviour
     private float lastCheckTime  = 0f;
 
     private const string LOCAL_SINGLE_ID = "local-player-single-mode";
+
+    // ═══════════════════════════════════════════════
+    // PUBLIC API — expose MiniCamera cho GameManager
+    // ═══════════════════════════════════════════════
+
+    /// <summary>Trả về followMapCamera để GameManager detach trước khi destroy player.</summary>
+    public GameObject GetFollowMapCamera() => followMapCamera;
 
     // ═══════════════════════════════════════════════
     // LIFECYCLE
@@ -206,7 +215,7 @@ public class PlayerSpawner : MonoBehaviour
 
         players[sessionId] = playerObj;
 
-        // ✅ Gán FollowMapCamera làm con của local player
+        // ✅ Attach MiniCamera vào local player (cả lần đầu lẫn sau khi re-join)
         if (isLocal) AttachFollowMapCamera(playerObj);
 
         if (isLocal && PlayerTeleportManager.Instance != null)
@@ -252,7 +261,7 @@ public class PlayerSpawner : MonoBehaviour
 
         players[LOCAL_SINGLE_ID] = playerObj;
 
-        // ✅ Gán FollowMapCamera làm con của local player (single mode)
+        // ✅ Attach MiniCamera (cả lần đầu lẫn sau khi re-join single mode)
         AttachFollowMapCamera(playerObj);
 
         if (PlayerTeleportManager.Instance != null)
@@ -269,6 +278,10 @@ public class PlayerSpawner : MonoBehaviour
     // FOLLOW MAP CAMERA
     // ═══════════════════════════════════════════════
 
+    /// <summary>
+    /// Attach MiniCamera vào localPlayer.
+    /// Dùng worldPositionStays = false → localPosition/localRotation giữ nguyên như prefab.
+    /// </summary>
     private void AttachFollowMapCamera(GameObject localPlayerObj)
     {
         if (followMapCamera == null)
@@ -277,10 +290,29 @@ public class PlayerSpawner : MonoBehaviour
             return;
         }
 
-        // ✅ Gán làm con của local player — camera sẽ di chuyển theo player
         followMapCamera.transform.SetParent(localPlayerObj.transform, false);
 
         if (showDebug) Debug.Log($"[PlayerSpawner] FollowMapCamera attached to {localPlayerObj.name} ✅");
+    }
+
+    // ═══════════════════════════════════════════════
+    // CLEAR ALL PLAYERS — Gọi từ GameManager khi LeaveGame
+    // ═══════════════════════════════════════════════
+
+    /// <summary>Destroy tất cả player objects (cả local lẫn remote) và reset state.</summary>
+    public void ClearAllPlayers()
+    {
+        foreach (var entry in players)
+        {
+            if (entry.Value != null)
+            {
+                if (showDebug) Debug.Log($"[PlayerSpawner] ClearAllPlayers: Destroy {entry.Value.name}");
+                Destroy(entry.Value);
+            }
+        }
+        players.Clear();
+        nextSpawnIndex = 0;
+        if (showDebug) Debug.Log("[PlayerSpawner] ClearAllPlayers done ✅");
     }
 
     // ═══════════════════════════════════════════════
