@@ -25,6 +25,12 @@ public class MenuView : MonoBehaviour
     [SerializeField] private float posXSinglePlayer = -162f;
     [SerializeField] private float moveSpeed = 10f;   // lerp speed
 
+    [Header("Mode Labels & Icons")]
+    [SerializeField] private GameObject singleText;
+    [SerializeField] private GameObject multiText;
+    [SerializeField] private GameObject singleIcon;
+    [SerializeField] private GameObject multiIcon;
+
     // ─── Events ────────────────────────────────────
     public event Action<string> OnNameChanged;
     public event Action OnMultiPlayerModeSelected;   // ← chỉ chọn mode
@@ -52,6 +58,9 @@ public class MenuView : MonoBehaviour
             moveElement.anchoredPosition = pos;
             targetPosX = posXSinglePlayer;
         }
+
+        // ✅ Hiển thị label/icon theo mode mặc định (SinglePlayer)
+        UpdateModeIndicators(isMulti: false);
 
         // ✅ Start button hiện sẵn (vì đã có mode mặc định)
         if (startButton != null) startButton.gameObject.SetActive(true);
@@ -111,25 +120,17 @@ public class MenuView : MonoBehaviour
 
     private void OnMultiPlayerClicked()
     {
-        // Di chuyển indicator sang Multiplayer
         SetMoveElementTarget(posXMultiPlayer);
-
-        // Hiện Start button
+        UpdateModeIndicators(isMulti: true);
         ShowStartButton(true);
-
-        // Notify controller
         OnMultiPlayerModeSelected?.Invoke();
     }
 
     private void OnSinglePlayerClicked()
     {
-        // Di chuyển indicator sang SinglePlayer
         SetMoveElementTarget(posXSinglePlayer);
-
-        // Hiện Start button
+        UpdateModeIndicators(isMulti: false);
         ShowStartButton(true);
-
-        // Notify controller
         OnSinglePlayerModeSelected?.Invoke();
     }
 
@@ -233,6 +234,7 @@ public class MenuView : MonoBehaviour
         // ✅ Reset về SinglePlayer mặc định + hiện Start button
         ShowStartButton(true);                   // ← đổi false → true
         SnapMoveElement(posXSinglePlayer);
+        UpdateModeIndicators(isMulti: false);
 
         HideInGameUI();
         Debug.Log("[MenuView] View reset ✅");
@@ -268,6 +270,18 @@ public class MenuView : MonoBehaviour
     {
         if (UIInPlay == null) return;
         SetRectPos(UIInPlay, new Vector2(-3000f, 0f));
+    }
+
+    // ════════════════════════════════════════════════
+    // MODE INDICATORS
+    // ════════════════════════════════════════════════
+
+    private void UpdateModeIndicators(bool isMulti)
+    {
+        if (singleText != null) singleText.SetActive(!isMulti);
+        if (singleIcon != null) singleIcon.SetActive(!isMulti);
+        if (multiText  != null) multiText.SetActive(isMulti);
+        if (multiIcon  != null) multiIcon.SetActive(isMulti);
     }
 
     // ════════════════════════════════════════════════

@@ -79,6 +79,9 @@ public class MenuController : MonoBehaviour
         model.SetStatus("Chọn avatar và nhập tên để bắt đầu!");
         model.SetJoinButtonState(true);
 
+        // ✅ Mặc định chọn SinglePlayer để khớp với UI mặc định trong MenuView
+        selectedMode = GameMode.SinglePlayer;
+
         ShowMenuPanel();
     }
 
