@@ -828,7 +828,7 @@ GameObject:
   - component: {fileID: 1544996042332727398}
   - component: {fileID: 4388626583488582289}
   m_Layer: 0
-  m_Name: avater5
+  m_Name: Avatar5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5177,7 +5177,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 2.016}
+  m_AnchoredPosition: {x: 0, y: 2.142}
   m_SizeDelta: {x: 1, y: 1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &1172904841939315142

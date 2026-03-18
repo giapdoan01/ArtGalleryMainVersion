@@ -295,8 +295,15 @@ public class PaintingPrefab : MonoBehaviour
 
         if (infoCollider is BoxCollider box && quadRenderer != null)
         {
-            Vector3 qs = quadRenderer.transform.localScale;
-            box.size   = new Vector3(qs.x, qs.y, 0.2f);
+            // Dùng lossyScale (world-space) để tính đúng kích thước sau khi frame/quad đã được scale
+            Vector3 quadWorld      = quadRenderer.transform.lossyScale;
+            Vector3 colliderWorld  = infoCollider.transform.lossyScale;
+
+            box.size   = new Vector3(
+                quadWorld.x / Mathf.Max(colliderWorld.x, 0.0001f),
+                quadWorld.y / Mathf.Max(colliderWorld.y, 0.0001f),
+                0.2f
+            );
             box.center = Vector3.zero;
         }
 

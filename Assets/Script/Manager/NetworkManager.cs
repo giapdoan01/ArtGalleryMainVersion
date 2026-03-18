@@ -28,7 +28,7 @@ public class NetworkManager : MonoBehaviour
 
     // Player Data
     public string PlayerName  { get; set; }
-    public int    AvatarIndex { get; set; }  // ✅ Dùng AvatarIndex thay AvatarURL
+    public int    AvatarIndex { get; set; }  
 
     // Events
     public event Action                    OnConnected;

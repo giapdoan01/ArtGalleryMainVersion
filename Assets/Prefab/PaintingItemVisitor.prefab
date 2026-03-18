@@ -488,7 +488,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1384070431974958692
 RectTransform:
   m_ObjectHideFlags: 0
@@ -900,8 +900,8 @@ MonoBehaviour:
   thumbnailImage: {fileID: 7600545239035558579}
   nameText: {fileID: 2299075794497291249}
   frameIdText: {fileID: 0}
-  isUsedFrame: {fileID: 0}
-  selectButton: {fileID: 0}
+  isUsedFrame: {fileID: 3864941444291912380}
+  selectButton: {fileID: 7880833481095315823}
   teleportButton: {fileID: 2418182088225156956}
   showDebug: 0
   paintingData:
