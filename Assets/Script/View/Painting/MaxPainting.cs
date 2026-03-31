@@ -8,6 +8,9 @@ public class MaxPainting : MonoBehaviour
     [SerializeField] private GameObject maxPanel;
     [SerializeField] private Image      paintingImage;
     [SerializeField] private Button     closeButton;
+    [SerializeField] private Button     closeButton2;
+    [SerializeField] private Button     zoomInButton;
+    [SerializeField] private Button     zoomOutButton;
 
     [Header("Image Size Limits")]
     [SerializeField] private float maxWidth  = 800f;
@@ -30,20 +33,31 @@ public class MaxPainting : MonoBehaviour
 
     private void Awake()
     {
-        if (maxPanel != null)
-            maxPanel.SetActive(false);
-    }
+        // Không gọi maxPanel.SetActive(false) ở đây vì nếu MaxPainting nằm trên
+        // chính maxPanel, khi Show() gọi SetActive(true) sẽ trigger Awake và tự
+        // ẩn panel lại ngay lập tức → click đầu tiên không hoạt động.
+        // Hãy đảm bảo maxPanel được set inactive sẵn trong Inspector/Prefab.
 
-    private void Start()
-    {
         if (closeButton != null)
             closeButton.onClick.AddListener(OnCloseButtonClicked);
+        if (closeButton2 != null)
+            closeButton2.onClick.AddListener(OnCloseButtonClicked);
+        if (zoomInButton != null)
+            zoomInButton.onClick.AddListener(OnZoomInClicked);
+        if (zoomOutButton != null)
+            zoomOutButton.onClick.AddListener(OnZoomOutClicked);
     }
 
     private void OnDestroy()
     {
         if (closeButton != null)
             closeButton.onClick.RemoveListener(OnCloseButtonClicked);
+        if (closeButton2 != null)
+            closeButton2.onClick.RemoveListener(OnCloseButtonClicked);
+        if (zoomInButton != null)
+            zoomInButton.onClick.RemoveListener(OnZoomInClicked);
+        if (zoomOutButton != null)
+            zoomOutButton.onClick.RemoveListener(OnZoomOutClicked);
     }
 
     private void Update()
@@ -119,9 +133,11 @@ public class MaxPainting : MonoBehaviour
 
         if (results.Count == 0) return false;
 
-        // Element trên cùng (index 0) phải là closeButton hoặc con của nó
+        // Element trên cùng (index 0) phải là closeButton / closeButton2 hoặc con của chúng
         GameObject topObject = results[0].gameObject;
-        return !IsChildOf(topObject, closeButton.gameObject);
+        bool hitClose1 = closeButton  != null && IsChildOf(topObject, closeButton.gameObject);
+        bool hitClose2 = closeButton2 != null && IsChildOf(topObject, closeButton2.gameObject);
+        return !(hitClose1 || hitClose2);
     }
 
     /// <summary>Kiểm tra obj có phải là parent hoặc chính nó không</summary>
@@ -140,19 +156,35 @@ public class MaxPainting : MonoBehaviour
     // ZOOM
     // ════════════════════════════════════════════════
 
+    private void OnZoomInClicked()
+    {
+        ApplyZoom(zoomSpeed);
+    }
+
+    private void OnZoomOutClicked()
+    {
+        ApplyZoom(-zoomSpeed);
+    }
+
     private void HandleZoom()
     {
         float scroll = Input.GetAxis("Mouse ScrollWheel");
         if (Mathf.Abs(scroll) < 0.001f) return;
 
+        ApplyZoom(scroll * zoomSpeed);
+    }
+
+    private void ApplyZoom(float delta)
+    {
+        if (paintingImage == null) return;
+
         RectTransform imageRect = paintingImage.GetComponent<RectTransform>();
         if (imageRect == null) return;
 
-        // Lấy aspect ratio từ size hiện tại để giữ tỉ lệ
         float aspect = imageRect.sizeDelta.x / imageRect.sizeDelta.y;
 
         currentHeight = Mathf.Clamp(
-            currentHeight + scroll * zoomSpeed,
+            currentHeight + delta,
             minZoomHeight,
             maxZoomHeight
         );
@@ -160,8 +192,18 @@ public class MaxPainting : MonoBehaviour
         float newWidth = currentHeight * aspect;
         imageRect.sizeDelta = new Vector2(newWidth, currentHeight);
 
+        UpdateZoomButtons();
+
         if (showDebug)
             Debug.Log($"[MaxPainting] Zoom → {newWidth:F0}x{currentHeight:F0}");
+    }
+
+    private void UpdateZoomButtons()
+    {
+        if (zoomOutButton != null)
+            zoomOutButton.interactable = currentHeight > minZoomHeight;
+        if (zoomInButton != null)
+            zoomInButton.interactable = currentHeight < maxZoomHeight;
     }
 
     // ════════════════════════════════════════════════
@@ -205,6 +247,7 @@ public class MaxPainting : MonoBehaviour
         // ✅ Ghi nhớ min zoom = kích thước vừa fit xong
         minZoomHeight = finalH;
         currentHeight = finalH;
+        UpdateZoomButtons();
 
         if (showDebug)
             Debug.Log($"[MaxPainting] Image sized: {finalW:F0}x{finalH:F0} " +

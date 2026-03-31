@@ -20,6 +20,9 @@ public class Model3DGalleryContainer : MonoBehaviour
     [SerializeField] private bool autoHideAfterLoad = true;
     [SerializeField] private float maxWaitTime = 15f;
     
+    [Header("Panel Integration")]
+    [SerializeField] private Model3DInfo model3DInfo;
+
     [Header("Filter Settings")]
     [SerializeField] private bool listIsUsedModel3D = false;
     [Space(5)]
@@ -31,25 +34,52 @@ public class Model3DGalleryContainer : MonoBehaviour
     private List<Model3DItem> model3DItems = new List<Model3DItem>();
     private bool isDataLoaded = false;
     private bool isLoadingInProgress = false;
+    private bool isInitialized = false;
+    private Coroutine activeLoadCoroutine;
+
+    private void OnEnable()
+    {
+        AdminModeManager.OnAdminModeChanged += ApplyAdminMode;
+        ApplyAdminMode(AdminModeManager.Instance != null && AdminModeManager.Instance.IsAdmin);
+    }
+
+    private void OnDisable()
+    {
+        AdminModeManager.OnAdminModeChanged -= ApplyAdminMode;
+    }
+
+    private void ApplyAdminMode(bool isAdmin)
+    {
+        if (refreshButton != null) refreshButton.gameObject.SetActive(isAdmin);
+
+        bool newFilter = !isAdmin;
+        if (listIsUsedModel3D == newFilter) return;
+
+        listIsUsedModel3D = newFilter;
+        UpdateFilterInfo();
+
+        if (isInitialized)
+        {
+            if (activeLoadCoroutine != null) StopCoroutine(activeLoadCoroutine);
+            isLoadingInProgress = false;
+            activeLoadCoroutine = StartCoroutine(LoadModelsCoroutine(shouldAutoHide: false));
+        }
+    }
 
     private void Start()
     {
         if (refreshButton != null)
-        {
             refreshButton.onClick.AddListener(RefreshGallery);
-        }
 
         if (APIManager.Instance != null)
-        {
             APIManager.Instance.onApiResponseRefreshed += OnAPIRefreshed;
-        }
 
         UpdateFilterInfo();
 
+        isInitialized = true;
+
         if (loadOnStart)
-        {
             StartCoroutine(InitializeGallery());
-        }
     }
 
     private IEnumerator InitializeGallery()
@@ -95,7 +125,8 @@ public class Model3DGalleryContainer : MonoBehaviour
         }
 
         if (showDebug) Debug.Log("[Model3DGallery] API data ready, loading models...");
-        yield return StartCoroutine(LoadModelsCoroutine());
+        activeLoadCoroutine = StartCoroutine(LoadModelsCoroutine());
+        yield return activeLoadCoroutine;
     }
 
     private void OnAPIRefreshed(APIResponse response)
@@ -111,7 +142,7 @@ public class Model3DGalleryContainer : MonoBehaviour
 
         if (!isLoadingInProgress)
         {
-            StartCoroutine(LoadModelsCoroutine());
+            activeLoadCoroutine = StartCoroutine(LoadModelsCoroutine());
         }
     }
 
@@ -344,6 +375,7 @@ public class Model3DGalleryContainer : MonoBehaviour
 
         if (item != null)
         {
+            item.SetModel3DInfo(model3DInfo);
             item.Setup(model3D, null);
             model3DItems.Add(item);
 

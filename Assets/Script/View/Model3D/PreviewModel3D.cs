@@ -7,6 +7,7 @@ public class PreviewModel3D : MonoBehaviour
     [Header("UI References")]
     [SerializeField] private GameObject previewModel3DPanel;
     [SerializeField] private Button     closeButton;
+    [SerializeField] private Button     closeButton2;
 
     [Header("Render Texture Output")]
     [SerializeField] private RawImage     renderTextureDisplay;
@@ -24,40 +25,35 @@ public class PreviewModel3D : MonoBehaviour
 
     private void Awake()
     {
-        if (previewModel3DPanel != null)
-            previewModel3DPanel.SetActive(false);
+        // Không gọi previewModel3DPanel.SetActive(false) ở đây — nếu PreviewModel3D
+        // nằm trên chính panel, Show() gọi SetActive(true) sẽ trigger Awake và tự ẩn lại.
+        // Hãy đảm bảo previewModel3DPanel được set inactive trong Inspector/Prefab.
+
+        if (closeButton  != null) closeButton.onClick.AddListener(Hide);
+        if (closeButton2 != null) closeButton2.onClick.AddListener(Hide);
+
+        if (renderTextureDisplay != null && renderTexture != null)
+            renderTextureDisplay.texture = renderTexture;
 
         // ✅ Đảm bảo RawImage block raycast — không cho event xuyên xuống closeButton
         if (renderTextureDisplay != null)
         {
             renderTextureDisplay.raycastTarget = true;
 
-            // ✅ Thêm GraphicRaycaster blocker nếu chưa có EventTrigger
-            // Dùng EventTrigger để bắt click trên RawImage mà KHÔNG close panel
             EventTrigger trigger = renderTextureDisplay.GetComponent<EventTrigger>();
             if (trigger == null)
                 trigger = renderTextureDisplay.gameObject.AddComponent<EventTrigger>();
 
-            // Block PointerClick — không làm gì cả, chỉ để chặn event bubble xuống
             var entry = new EventTrigger.Entry { eventID = EventTriggerType.PointerClick };
             entry.callback.AddListener((_) => { /* Chặn click — không close */ });
             trigger.triggers.Add(entry);
         }
     }
 
-    private void Start()
-    {
-        if (closeButton != null)
-            closeButton.onClick.AddListener(Hide);
-
-        if (renderTextureDisplay != null && renderTexture != null)
-            renderTextureDisplay.texture = renderTexture;
-    }
-
     private void OnDestroy()
     {
-        if (closeButton != null)
-            closeButton.onClick.RemoveListener(Hide);
+        if (closeButton  != null) closeButton.onClick.RemoveListener(Hide);
+        if (closeButton2 != null) closeButton2.onClick.RemoveListener(Hide);
     }
 
     // ════════════════════════════════════════════════

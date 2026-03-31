@@ -12,6 +12,10 @@ public class PaintingItem : MonoBehaviour
     [SerializeField] private GameObject isUsedFrame;
     [SerializeField] private Button selectButton;
     [SerializeField] private Button teleportButton;
+    [SerializeField] private Image frameHighlight;
+
+    [Header("Highlight Settings")]
+    [SerializeField] private Color highlightColor = new Color(1f, 0.5f, 0f, 1f);
 
     [Header("Debug")]
     [SerializeField] private bool showDebug = false;
@@ -19,6 +23,7 @@ public class PaintingItem : MonoBehaviour
     public Painting paintingData;
     private Texture2D paintingTexture;
     private PaintingPrefab paintingPrefabInstance;
+    private PaintingInfo paintingInfo;
 
     private bool isSubscribedToEvent = false;
 
@@ -32,6 +37,12 @@ public class PaintingItem : MonoBehaviour
             if (showDebug)
                 Debug.Log($"[PaintingItem] Subscribed to OnPaintingPrefabSpawned event");
         }
+
+        AdminModeManager.OnAdminModeChanged += ApplyAdminMode;
+        ApplyAdminMode(AdminModeManager.Instance != null && AdminModeManager.Instance.IsAdmin);
+
+        PaintingInfo.OnPaintingInfoShown  += OnPaintingInfoShown;
+        PaintingInfo.OnPaintingInfoHidden += OnPaintingInfoHidden;
     }
 
     private void OnDisable()
@@ -41,6 +52,33 @@ public class PaintingItem : MonoBehaviour
             PaintingPrefabManager.OnPaintingPrefabSpawned -= OnPaintingPrefabSpawned;
             isSubscribedToEvent = false;
         }
+
+        AdminModeManager.OnAdminModeChanged -= ApplyAdminMode;
+
+        PaintingInfo.OnPaintingInfoShown  -= OnPaintingInfoShown;
+        PaintingInfo.OnPaintingInfoHidden -= OnPaintingInfoHidden;
+    }
+
+    private void OnPaintingInfoShown(int paintingId)
+    {
+        if (frameHighlight == null) return;
+        bool isSelected = paintingData != null && paintingData.id == paintingId;
+        frameHighlight.color = isSelected ? highlightColor : Color.white;
+    }
+
+    private void OnPaintingInfoHidden()
+    {
+        if (frameHighlight == null) return;
+        frameHighlight.color = Color.white;
+    }
+
+    private void ApplyAdminMode(bool isAdmin)
+    {
+        if (isUsedFrame != null)
+            isUsedFrame.SetActive(isAdmin && paintingData != null && paintingData.is_used == 1);
+
+        if (selectButton != null)
+            selectButton.gameObject.SetActive(isAdmin);
     }
 
     public void Setup(Painting painting, Texture2D pathTexture)
@@ -65,7 +103,8 @@ public class PaintingItem : MonoBehaviour
 
         if (isUsedFrame != null)
         {
-            isUsedFrame.SetActive(painting.is_used == 1);
+            bool isAdmin = AdminModeManager.Instance != null && AdminModeManager.Instance.IsAdmin;
+            isUsedFrame.SetActive(isAdmin && painting.is_used == 1);
         }
 
         UpdateButtonState();
@@ -246,6 +285,10 @@ public class PaintingItem : MonoBehaviour
         {
             Debug.LogError("[PaintingItem] PlayerTeleportManager not found!");
         }
+
+        if (paintingInfo != null)
+            StartCoroutine(ShowPaintingInfoDelayed());
+
     }
 
     private void FindPaintingPrefabInScene()
@@ -326,7 +369,8 @@ public class PaintingItem : MonoBehaviour
 
         if (isUsedFrame != null)
         {
-            isUsedFrame.SetActive(paintingData.is_used == 1);
+            bool isAdmin = AdminModeManager.Instance != null && AdminModeManager.Instance.IsAdmin;
+            isUsedFrame.SetActive(isAdmin && paintingData.is_used == 1);
         }
 
         UpdateTeleportButtonState();
@@ -360,6 +404,15 @@ public class PaintingItem : MonoBehaviour
         }
     }
 
+    private IEnumerator ShowPaintingInfoDelayed()
+    {
+        yield return new WaitForSeconds(1f);
+        paintingInfo.ShowInfo(paintingData, paintingTexture);
+
+        if (showDebug)
+            Debug.Log($"[PaintingItem] PaintingInfo shown for: {paintingData.name}");
+    }
+
     public void OnPaintingRemoved(int paintingId)
     {
         if (paintingData != null && paintingData.id == paintingId)
@@ -373,6 +426,8 @@ public class PaintingItem : MonoBehaviour
             UpdateButtonState();
         }
     }
+
+    public void SetPaintingInfo(PaintingInfo info) => paintingInfo = info;
 
     public Painting GetData() => paintingData;
     public Texture2D GetTexture() => paintingTexture;

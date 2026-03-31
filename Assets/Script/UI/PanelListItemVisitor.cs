@@ -13,6 +13,7 @@ public class PanelListItemVisitor : MonoBehaviour
     [SerializeField] private Button closeChatButton;
     [SerializeField] private Button openMinimapPanelBtn;
     [SerializeField] private Button closeMinimapPanelBtn;
+    [SerializeField] private Button swapViewButton;
 
     [Header("Panels")]
     [SerializeField] private GameObject ListItemPanel;
@@ -47,6 +48,10 @@ public class PanelListItemVisitor : MonoBehaviour
     [SerializeField] private Vector3 openMinimapBtnShowPosition = Vector3.zero;
     [SerializeField] private Vector3 openMinimapBtnHidePosition = new Vector3(300, 0, 0);
 
+    [Header("SwapView Button Positions")]
+    [SerializeField] private Vector3 swapViewButtonShowPosition = Vector3.zero;
+    [SerializeField] private Vector3 swapViewButtonHidePosition = new Vector3(-300, 0, 0);
+
     [Header("Panel Integration")]
     [SerializeField] private PaintingInfo paintingInfo;
     [SerializeField] private Model3DInfo  model3DInfo;
@@ -61,6 +66,7 @@ public class PanelListItemVisitor : MonoBehaviour
     private bool isDisplayListItemBtnVisible = false;
     private bool isMinimapVisible            = false;
     private bool isOpenMinimapBtnVisible     = false;
+    private bool isSwapViewBtnVisible        = false;
 
     private bool paintingInfoIsOpen = false;
     private bool model3DInfoIsOpen  = false;
@@ -70,6 +76,7 @@ public class PanelListItemVisitor : MonoBehaviour
     private bool wasOpenChatBtnVisibleBeforeListItem    = false;
     private bool wasMinimapVisibleBeforeListItem        = false;
     private bool wasOpenMinimapBtnVisibleBeforeListItem = false;
+    private bool wasSwapViewBtnVisibleBeforeListItem    = false;
 
     // ── RectTransforms ───────────────────────────────────────────────────
     private RectTransform listItemRT;
@@ -78,6 +85,7 @@ public class PanelListItemVisitor : MonoBehaviour
     private RectTransform displayListItemBtnRT;
     private RectTransform openChatBtnRT;
     private RectTransform openMinimapBtnRT;
+    private RectTransform swapViewBtnRT;
 
     // ── CanvasGroups ─────────────────────────────────────────────────────
     private CanvasGroup paintingPanelCG;
@@ -98,6 +106,7 @@ public class PanelListItemVisitor : MonoBehaviour
         displayListItemBtnRT = GetRT(displayListItemButton?.gameObject, "displayListItemButton");
         openChatBtnRT        = GetRT(openChatButton?.gameObject,        "openChatButton");
         openMinimapBtnRT     = GetRT(openMinimapPanelBtn?.gameObject,   "openMinimapPanelBtn");
+        swapViewBtnRT        = GetRT(swapViewButton?.gameObject,        "swapViewButton");
 
         paintingPanelCG = GetOrAddCG(PaintingPanel, "PaintingPanel");
         model3DPanelCG  = GetOrAddCG(Model3DPanel,  "Model3DPanel");
@@ -164,6 +173,10 @@ public class PanelListItemVisitor : MonoBehaviour
         isMinimapVisible        = true;
         isOpenMinimapBtnVisible = false;
 
+        // ── SwapViewButton → SHOW ─────────────────────────────────────────
+        SetPositionImmediate(swapViewBtnRT, swapViewButtonShowPosition);
+        isSwapViewBtnVisible = true;
+
         // ── Painting panel mặc định hiện ────────────────────────────────
         ShowPaintingPanel();
     }
@@ -192,7 +205,6 @@ public class PanelListItemVisitor : MonoBehaviour
         if (isChatVisible) return;
 
         SetOpenChatBtnVisible(false);
-        SetDisplayListItemBtnVisible(false);
         isChatVisible = true;
         AnimateTo(chatPanelRT, chatPanelShowPosition);
 
@@ -206,7 +218,6 @@ public class PanelListItemVisitor : MonoBehaviour
         isChatVisible = false;
         AnimateTo(chatPanelRT, chatPanelHidePosition);
         SetOpenChatBtnVisible(true);
-        SetDisplayListItemBtnVisible(true);
 
         if (showDebug) Debug.Log("[PanelListItemVisitor] Chat → HIDE");
     }
@@ -242,6 +253,7 @@ public class PanelListItemVisitor : MonoBehaviour
         wasOpenChatBtnVisibleBeforeListItem    = isOpenChatBtnVisible;
         wasMinimapVisibleBeforeListItem        = isMinimapVisible;
         wasOpenMinimapBtnVisibleBeforeListItem = isOpenMinimapBtnVisible;
+        wasSwapViewBtnVisibleBeforeListItem    = isSwapViewBtnVisible;
 
         // ── Ẩn Chat nếu đang show ────────────────────────────────────────
         if (isChatVisible)
@@ -253,6 +265,7 @@ public class PanelListItemVisitor : MonoBehaviour
         // ── Ẩn tất cả HUD ────────────────────────────────────────────────
         SetOpenChatBtnVisible(false);
         SetDisplayListItemBtnVisible(false);
+        SetSwapViewBtnVisible(false);
 
         // Ẩn cả MinimapPanel lẫn openMinimapBtn — không toggle, ẩn hết
         ForceHideMinimapAll();
@@ -287,6 +300,9 @@ public class PanelListItemVisitor : MonoBehaviour
         // ── Restore displayListItemButton ────────────────────────────────
         SetDisplayListItemBtnVisible(true);
 
+        // ── Restore SwapViewButton ────────────────────────────────────────
+        SetSwapViewBtnVisible(wasSwapViewBtnVisibleBeforeListItem);
+
         // Restore Minimap về đúng trạng thái trước khi mở ListItem
         RestoreMinimapState(wasMinimapVisibleBeforeListItem, wasOpenMinimapBtnVisibleBeforeListItem);
 
@@ -295,85 +311,45 @@ public class PanelListItemVisitor : MonoBehaviour
 
     // ═══════════════════════════════════════════════════════════════════
     // LUỒNG 3 — PAINTING INFO
+    // ListItemPanel và paintingInfo có thể cùng hiển thị — không ẩn gì cả.
     // ═══════════════════════════════════════════════════════════════════
 
     public void HideForPaintingInfo()
     {
         if (paintingInfoIsOpen) return;
         paintingInfoIsOpen = true;
-
-        HideContentPanels();
-        ShowHUDButtons();
-
-        if (showDebug) Debug.Log("[PanelListItemVisitor] HideForPaintingInfo");
+        if (showDebug) Debug.Log("[PanelListItemVisitor] PaintingInfo → OPEN");
     }
 
     public void RestoreAfterPaintingInfo()
     {
         if (!paintingInfoIsOpen) return;
         paintingInfoIsOpen = false;
-        if (showDebug) Debug.Log("[PanelListItemVisitor] RestoreAfterPaintingInfo — HUD stays visible");
+        if (showDebug) Debug.Log("[PanelListItemVisitor] PaintingInfo → CLOSED");
     }
 
     // ═══════════════════════════════════════════════════════════════════
     // LUỒNG 3 — MODEL3D INFO
+    // ListItemPanel và model3DInfo có thể cùng hiển thị — không ẩn gì cả.
     // ═══════════════════════════════════════════════════════════════════
 
     public void HideForModel3DInfo()
     {
         if (model3DInfoIsOpen) return;
         model3DInfoIsOpen = true;
-
-        HideContentPanels();
-        ShowHUDButtons();
-
-        if (showDebug) Debug.Log("[PanelListItemVisitor] HideForModel3DInfo");
+        if (showDebug) Debug.Log("[PanelListItemVisitor] Model3DInfo → OPEN");
     }
 
     public void RestoreAfterModel3DInfo()
     {
         if (!model3DInfoIsOpen) return;
         model3DInfoIsOpen = false;
-        if (showDebug) Debug.Log("[PanelListItemVisitor] RestoreAfterModel3DInfo — HUD stays visible");
+        if (showDebug) Debug.Log("[PanelListItemVisitor] Model3DInfo → CLOSED");
     }
 
     // ═══════════════════════════════════════════════════════════════════
     // SHARED HELPERS
     // ═══════════════════════════════════════════════════════════════════
-
-    /// <summary>
-    /// Ẩn ListItemPanel và ChatPanel.
-    /// ✅ Nếu ListItem đang mở → restore Minimap về state đã lưu trước đó,
-    ///    vì ListItem là thứ đã force-hide Minimap.
-    /// </summary>
-    private void HideContentPanels()
-    {
-        if (isListItemVisible)
-        {
-            isListItemVisible = false;
-            AnimateTo(listItemRT, listItemHidePosition);
-
-            // ✅ ListItem đang ẩn Minimap → restore về state trước khi ListItem mở
-            RestoreMinimapState(wasMinimapVisibleBeforeListItem, wasOpenMinimapBtnVisibleBeforeListItem);
-        }
-
-        if (isChatVisible)
-        {
-            isChatVisible = false;
-            AnimateTo(chatPanelRT, chatPanelHidePosition);
-        }
-    }
-
-    /// <summary>
-    /// Đưa openChatButton và displayListItemButton về show.
-    /// Minimap KHÔNG bị động — giữ nguyên trạng thái hiện tại.
-    /// </summary>
-    private void ShowHUDButtons()
-    {
-        SetOpenChatBtnVisible(true);
-        SetDisplayListItemBtnVisible(true);
-        // KHÔNG gọi SetMinimapVisible — Minimap tự quản lý riêng
-    }
 
     /// <summary>Ẩn cả MinimapPanel lẫn openMinimapBtn — dùng khi mở ListItem.</summary>
     private void ForceHideMinimapAll()
@@ -437,6 +413,13 @@ public class PanelListItemVisitor : MonoBehaviour
         if (isOpenMinimapBtnVisible == show) return;
         isOpenMinimapBtnVisible = show;
         AnimateTo(openMinimapBtnRT, show ? openMinimapBtnShowPosition : openMinimapBtnHidePosition);
+    }
+
+    private void SetSwapViewBtnVisible(bool show)
+    {
+        if (isSwapViewBtnVisible == show) return;
+        isSwapViewBtnVisible = show;
+        AnimateTo(swapViewBtnRT, show ? swapViewButtonShowPosition : swapViewButtonHidePosition);
     }
 
     // ═══════════════════════════════════════════════════════════════════

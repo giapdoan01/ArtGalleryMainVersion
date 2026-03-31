@@ -183,7 +183,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7333875796868646248}
   m_Layer: 0
-  m_Name: SpawnPoint
+  m_Name: TelePoint
   m_TagString: Untagged
   m_Icon: {fileID: -5442936267250999957, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
@@ -197,8 +197,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2834164493587403053}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 2.49}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -218,6 +218,7 @@ GameObject:
   - component: {fileID: 2030352312059362282}
   - component: {fileID: 2907283836584647494}
   - component: {fileID: 6550214079877181293}
+  - component: {fileID: 2495975137269613678}
   m_Layer: 0
   m_Name: 3DModelPrefab
   m_TagString: Model3D
@@ -256,7 +257,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RuntimeTransformGizmo
   gizmoSize: 2
   lineWidth: 0.5
-  hoverRadius: 0.15
+  circleWidth: 0.3
+  hoverRadius: 0.1
   scaleWithDistance: 1
   xAxisColor: {r: 1, g: 0.2, b: 0.2, a: 1}
   yAxisColor: {r: 0.2, g: 1, b: 0.2, a: 1}
@@ -285,19 +287,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Model3DPrefab
   glbContainer: {fileID: 408575928441804524}
-  infoCollider: {fileID: 0}
+  infoCollider: {fileID: 2495975137269613678}
   useAutoFit: 1
   maxModelSize: 2
   fallbackScale: 0.01
-  transformButton: {fileID: 0}
-  removeButton: {fileID: 0}
+  transformButton: {fileID: 8286901571921605533}
+  removeButton: {fileID: 5942899897330813853}
   gizmo: {fileID: 4728740121895936726}
+  model3DRotate: {fileID: 6550214079877181293}
   outlineMaterial: {fileID: 0}
   outlineScaleProperty: 
   outlineScaleIdle: 1
   outlineScaleHover: 1.1
   outlineLerpSpeed: 8
-  showDebug: 0
+  telePoint: {fileID: 7333875796868646248}
+  showDebug: 1
 --- !u!114 &2030352312059362282
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -324,8 +328,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8799d4ddd1cd64b418734b8ffb8929ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIBillboard
-  uiTransform: {fileID: 0}
-  sphereRadius: 3
+  uiTransform: {fileID: 4289630219054046769}
+  sphereRadius: 1
   hideWhenPlayerFar: 0
   maxVisibleDistance: 10
   moveSpeed: 10
@@ -346,6 +350,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Model3DRotate
   rotateSpeed: 15
+--- !u!135 &2495975137269613678
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5939856086031125098}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.5
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &6890519037693330812
 GameObject:
   m_ObjectHideFlags: 0
@@ -909,7 +934,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &4289630219054046769
 RectTransform:
   m_ObjectHideFlags: 0

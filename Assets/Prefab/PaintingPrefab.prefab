@@ -19,7 +19,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &2113941321006534695
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1665,8 +1665,8 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: -6708898800098935325, guid: 34bae847ccc55d44aac6eafd6a29e588, type: 3}
-  - {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
+  - {fileID: 2100000, guid: 6751ce1a4611b3940812c13a6847d94f, type: 2}
+  - {fileID: 2100000, guid: 6751ce1a4611b3940812c13a6847d94f, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1709,7 +1709,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &3449914041770253261
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2573,9 +2573,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c22b9180097b5b4419b4122602f01f0c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RuntimeTransformGizmo
-  gizmoSize: 1
+  gizmoSize: 1.5
   lineWidth: 0.5
-  hoverRadius: 0.15
+  circleWidth: 0.3
+  hoverRadius: 0.1
   scaleWithDistance: 1
   xAxisColor: {r: 1, g: 0.2, b: 0.2, a: 1}
   yAxisColor: {r: 0.2, g: 1, b: 0.2, a: 1}
@@ -2607,8 +2608,8 @@ MonoBehaviour:
   landscapeFrame: {fileID: 4879704605839793205}
   portraitFrame: {fileID: 1610224593504293973}
   infoCollider: {fileID: 1198014321515011901}
-  transformButton: {fileID: 0}
-  removeButton: {fileID: 0}
+  transformButton: {fileID: 4129195356319663361}
+  removeButton: {fileID: 1445615596662791368}
   gizmo: {fileID: 6815139861210176137}
   teleportPoint: {fileID: 3039898579574493091}
   outlineObject: {fileID: 5314665656271418859}
@@ -2639,7 +2640,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PaintingController
   paintingInfo: {fileID: 0}
-  showDebug: 1
+  showDebug: 0
 --- !u!1 &8742116495786252992
 GameObject:
   m_ObjectHideFlags: 0

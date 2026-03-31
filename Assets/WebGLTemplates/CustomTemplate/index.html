@@ -172,7 +172,13 @@
     
     <script>
         console.log('[WebGL] Template loaded');
-        
+
+        // ─────────────────────────────────────────────────────────────────
+        // ADMIN MODE — check từ server, không cần sửa tay
+        // ─────────────────────────────────────────────────────────────────
+        var CHECK_AUTH_URL = 'https://projects-admin.vr360.com.vn/api/phongtranh/check-auth';
+        // ─────────────────────────────────────────────────────────────────
+
         var unityInstance = null;
         var fileInput = document.getElementById('file-input');
         var loadingCover = document.getElementById('loading-cover');
@@ -271,15 +277,28 @@
                 progressBar.style.width = percent + '%';
             }).then(function(instance) {
                 unityInstance = instance;
-                
+
+                // Check auth từ server rồi mới gửi sang Unity
+                fetch(CHECK_AUTH_URL, { credentials: 'include' })
+                    .then(function(res) { return res.json(); })
+                    .then(function(json) {
+                        var isAdmin = json.data && json.data.logged_in === true;
+                        console.log('[WebGL] Auth check →', isAdmin ? 'Admin' : 'Visitor');
+                        unityInstance.SendMessage('AdminModeManager', 'SetAdminModeFromWeb', isAdmin.toString());
+                    })
+                    .catch(function(err) {
+                        console.warn('[WebGL] Auth check failed, defaulting to Visitor:', err);
+                        unityInstance.SendMessage('AdminModeManager', 'SetAdminModeFromWeb', 'false');
+                    });
+
                 // Fade out loading screen
                 loadingCover.style.transition = 'opacity 0.5s ease';
                 loadingCover.style.opacity = '0';
-                
+
                 setTimeout(function() {
                     loadingCover.style.display = 'none';
                 }, 500);
-                
+
                 console.log('[WebGL] ✓ Unity loaded successfully');
             }).catch(function(message) {
                 console.error('[WebGL] Unity load failed:', message);

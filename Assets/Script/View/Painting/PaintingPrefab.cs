@@ -154,6 +154,23 @@ public class PaintingPrefab : MonoBehaviour
         outlineObject.SetActive(false);
     }
 
+    private void OnEnable()
+    {
+        AdminModeManager.OnAdminModeChanged += ApplyAdminMode;
+        ApplyAdminMode(AdminModeManager.Instance != null && AdminModeManager.Instance.IsAdmin);
+    }
+
+    private void OnDisable()
+    {
+        AdminModeManager.OnAdminModeChanged -= ApplyAdminMode;
+    }
+
+    private void ApplyAdminMode(bool isAdmin)
+    {
+        if (transformButton != null) transformButton.gameObject.SetActive(isAdmin);
+        if (removeButton    != null) removeButton.gameObject.SetActive(isAdmin);
+    }
+
     private void Start()
     {
         onDisplayButton += DisplayButton;
@@ -554,9 +571,9 @@ public class PaintingPrefab : MonoBehaviour
         FindObjectOfType<PaintingGalleryContainer>()?.OnPaintingRemovedFromScene(id);
     }
 
-    private void OnGizmoTransformChanged(Vector3 pos, Vector3 rot)
+    private void OnGizmoTransformChanged()
     {
-        PaintingTransformEditPopup.Instance?.UpdateFromGizmo(pos, rot);
+        PaintingTransformEditPopup.Instance?.UpdateFromGizmo(gizmo.transform.position, gizmo.transform.eulerAngles);
     }
 
     // ════════════════════════════════════════════════

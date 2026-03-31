@@ -36,6 +36,8 @@ public class Model3DPrefabManager : MonoBehaviour
     
     private bool isLoadingModels = false;
 
+    public static event System.Action<int, Model3DPrefab> OnModel3DPrefabSpawned;
+
     private void Awake()
     {
         if (instance == null)
@@ -172,10 +174,12 @@ public class Model3DPrefabManager : MonoBehaviour
         if (prefab != null)
         {
             prefab.Setup(model3D, thumbnail);
-            
+
             //  Lưu vào dictionary
             spawnedModels[model3D.id] = modelObj;
-            
+
+            OnModel3DPrefabSpawned?.Invoke(model3D.id, prefab);
+
             return modelObj;
         }
         else
@@ -220,6 +224,8 @@ public class Model3DPrefabManager : MonoBehaviour
         prefab.Setup(model3D, thumbnail);
 
         spawnedModels.Add(model3D.id, modelObj);
+
+        OnModel3DPrefabSpawned?.Invoke(model3D.id, prefab);
 
         if (showDebug)
             Debug.Log($"[Model3DPrefabManager] Spawned model {model3D.id} at position {position}");
@@ -344,6 +350,13 @@ public class Model3DPrefabManager : MonoBehaviour
         {
             return spawnedModels[modelId];
         }
+        return null;
+    }
+
+    public Model3DPrefab FindPrefabByID(int modelId)
+    {
+        if (spawnedModels.TryGetValue(modelId, out GameObject obj) && obj != null)
+            return obj.GetComponent<Model3DPrefab>();
         return null;
     }
 

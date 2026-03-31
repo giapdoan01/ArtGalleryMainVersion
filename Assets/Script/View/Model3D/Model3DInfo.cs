@@ -31,6 +31,10 @@ public class Model3DInfo : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool showDebug = false;
 
+    // Event thông báo cho Model3DItem highlight khi info đang hiển thị
+    public static event System.Action<int> OnModel3DInfoShown;
+    public static event System.Action      OnModel3DInfoHidden;
+
     private Model3D       currentModel3D;
     private Texture2D     currentTexture;
     private Model3DPrefab currentPrefab;
@@ -58,10 +62,8 @@ public class Model3DInfo : MonoBehaviour
             panelListItemVisitor = FindObjectOfType<PanelListItemVisitor>();
 #pragma warning restore CS0618
         }
-    }
 
-    private void Start()
-    {
+        // Đăng ký button ở Awake để tránh Start() chạy sau ShowInfo() và override interactable
         if (closeButton != null)
             closeButton.onClick.AddListener(HideInfo);
 
@@ -100,6 +102,8 @@ public class Model3DInfo : MonoBehaviour
 
         if (infoPanel != null)
             infoPanel.SetActive(true);
+
+        OnModel3DInfoShown?.Invoke(model3D.id);
 
         DisplayImage(texture, model3D);
         DisplayName(model3D);
@@ -154,6 +158,8 @@ public class Model3DInfo : MonoBehaviour
     {
         if (infoPanel != null)
             infoPanel.SetActive(false);
+
+        OnModel3DInfoHidden?.Invoke();
 
         if (previewModel3D != null)
             previewModel3D.Hide();

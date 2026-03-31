@@ -26,32 +26,62 @@ public class PaintingGalleryContainer : MonoBehaviour
     [Space(5)]
     [SerializeField] private TextMeshProUGUI filterInfoText; // Optional: Hiển thị thông tin filter
 
+    [Header("Panel Integration")]
+    [SerializeField] private PaintingInfo paintingInfo;
+
     [Header("Debug")]
     [SerializeField] private bool showDebug = true;
 
     private List<PaintingItem> paintingItems = new List<PaintingItem>();
     private bool isDataLoaded = false;
     private bool isLoadingInProgress = false;
+    private bool isInitialized = false;
+    private Coroutine activeLoadCoroutine;
+
+    private void OnEnable()
+    {
+        AdminModeManager.OnAdminModeChanged += ApplyAdminMode;
+        ApplyAdminMode(AdminModeManager.Instance != null && AdminModeManager.Instance.IsAdmin);
+    }
+
+    private void OnDisable()
+    {
+        AdminModeManager.OnAdminModeChanged -= ApplyAdminMode;
+    }
+
+    private void ApplyAdminMode(bool isAdmin)
+    {
+        if (refreshButton != null) refreshButton.gameObject.SetActive(isAdmin);
+
+        bool newFilter = !isAdmin; // admin → false (thấy tất cả), visitor → true (chỉ tranh đã dùng)
+        if (listIsUsedPainting == newFilter) return;
+
+        listIsUsedPainting = newFilter;
+        UpdateFilterInfo();
+
+        // Reload danh sách chỉ khi gallery đã khởi tạo xong
+        if (isInitialized)
+        {
+            if (activeLoadCoroutine != null) StopCoroutine(activeLoadCoroutine);
+            isLoadingInProgress = false;
+            activeLoadCoroutine = StartCoroutine(LoadPaintingsCoroutine(shouldAutoHide: false));
+        }
+    }
 
     private void Start()
     {
         if (refreshButton != null)
-        {
             refreshButton.onClick.AddListener(RefreshGallery);
-        }
 
         if (APIManager.Instance != null)
-        {
             APIManager.Instance.onApiResponseRefreshed += OnAPIRefreshed;
-        }
 
-        //  Hiển thị thông tin filter
         UpdateFilterInfo();
 
+        isInitialized = true;
+
         if (loadOnStart)
-        {
             StartCoroutine(InitializeGallery());
-        }
     }
 
     private IEnumerator InitializeGallery()
@@ -97,7 +127,8 @@ public class PaintingGalleryContainer : MonoBehaviour
         }
 
         if (showDebug) Debug.Log("[PaintingGallery] API data ready, loading paintings...");
-        yield return StartCoroutine(LoadPaintingsCoroutine());
+        activeLoadCoroutine = StartCoroutine(LoadPaintingsCoroutine());
+        yield return activeLoadCoroutine;
     }
 
     private void OnAPIRefreshed(APIResponse response)
@@ -113,7 +144,7 @@ public class PaintingGalleryContainer : MonoBehaviour
 
         if (!isLoadingInProgress)
         {
-            StartCoroutine(LoadPaintingsCoroutine());
+            activeLoadCoroutine = StartCoroutine(LoadPaintingsCoroutine());
         }
     }
 
@@ -354,6 +385,8 @@ public class PaintingGalleryContainer : MonoBehaviour
 
         if (item != null)
         {
+            item.SetPaintingInfo(paintingInfo);
+
             if (!string.IsNullOrEmpty(painting.path_url))
             {
                 StartCoroutine(LoadPaintingTexture(painting, item));

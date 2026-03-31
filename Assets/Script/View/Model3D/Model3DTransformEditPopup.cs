@@ -137,18 +137,13 @@ public class Model3DTransformEditPopup : MonoBehaviour
     }
     public void OnUpdateGizmoMode(string mode)
     {
+        if (gizmoModeText == null) return;
         if (mode == "Move")
-        {
             gizmoModeText.text = "Chế độ chỉnh sửa: Di chuyển";
-        }
         else if (mode == "Rotate")
-        {
             gizmoModeText.text = "Chế độ chỉnh sửa: Xoay";
-        }
         else if (mode == "Scale")
-        {
             gizmoModeText.text = "Chế độ chỉnh sửa: Tỉ lệ";
-        }
     }
 
     #endregion

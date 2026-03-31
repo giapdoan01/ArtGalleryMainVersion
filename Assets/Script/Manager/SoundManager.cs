@@ -11,9 +11,6 @@ public class SoundManager : MonoBehaviour
     [SerializeField] private Button musicOnButton;
     [SerializeField] private Button musicOffButton;
 
-    [Header("PlayerPrefs Key")]
-    [SerializeField] private string musicStateKey = "MusicEnabled";
-
     [Header("Debug")]
     [SerializeField] private bool showDebug = false;
 
@@ -25,16 +22,10 @@ public class SoundManager : MonoBehaviour
             backgroundMusicSource.clip = audioClip;
             backgroundMusicSource.loop = true;
 
-            // Load trạng thái đã lưu (mặc định = bật)
-            bool isMusicEnabled = PlayerPrefs.GetInt(musicStateKey, 1) == 1;
-
-            if (isMusicEnabled)
-            {
-                backgroundMusicSource.Play();
-            }
+            backgroundMusicSource.Play();
 
             if (showDebug)
-                Debug.Log($"[SoundManager] Music enabled: {isMusicEnabled}");
+                Debug.Log("[SoundManager] Music started");
         }
 
         // Setup buttons
@@ -59,7 +50,6 @@ public class SoundManager : MonoBehaviour
         if (backgroundMusicSource.isPlaying)
         {
             backgroundMusicSource.Pause();
-            PlayerPrefs.SetInt(musicStateKey, 0);
 
             if (showDebug)
                 Debug.Log("[SoundManager] Music OFF");
@@ -67,13 +57,11 @@ public class SoundManager : MonoBehaviour
         else
         {
             backgroundMusicSource.Play();
-            PlayerPrefs.SetInt(musicStateKey, 1);
 
             if (showDebug)
                 Debug.Log("[SoundManager] Music ON");
         }
 
-        PlayerPrefs.Save();
         UpdateButtonUI();
     }
 

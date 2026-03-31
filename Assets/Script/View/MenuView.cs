@@ -13,10 +13,18 @@ public class MenuView : MonoBehaviour
     [SerializeField] private TextMeshProUGUI statusText;
     [SerializeField] private GameObject UIInPlay;
 
+    [Header("Avatar Selection")]
+    [SerializeField] private Button      avatarSelectButton;
+    [SerializeField] private AvatarPanel avatarPanel;
+
     [Header("Mode Selection")]
     [SerializeField] private Button multiPlayerButton;
     [SerializeField] private Button singlePlayerButton;
     [SerializeField] private Button startButton;
+
+    [Header("Multiplayer Only UI")]
+    [Tooltip("Các GameObject chỉ hiện ở chế độ Multiplayer (chat panel, PlayerList button, ...)")]
+    [SerializeField] private GameObject[] multiplayerOnlyUI;
 
     [Header("Mode Indicator")]
     [Tooltip("GameObject sẽ trượt sang trái/phải để chỉ mode đang chọn")]
@@ -35,7 +43,8 @@ public class MenuView : MonoBehaviour
     public event Action<string> OnNameChanged;
     public event Action OnMultiPlayerModeSelected;   // ← chỉ chọn mode
     public event Action OnSinglePlayerModeSelected;  // ← chỉ chọn mode
-    public event Action OnStartButtonClicked;        // ← mới: trigger vào game
+    public event Action OnStartButtonClicked;        // ← trigger vào game
+    public event Action OnAvatarSelectButtonClicked; // ← mở AvatarPanel
 
     // ─── State ─────────────────────────────────────
     private bool isMoving = false;
@@ -78,10 +87,11 @@ public class MenuView : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (nameInput != null) nameInput.onValueChanged.RemoveAllListeners();
-        if (multiPlayerButton != null) multiPlayerButton.onClick.RemoveAllListeners();
+        if (nameInput          != null) nameInput.onValueChanged.RemoveAllListeners();
+        if (multiPlayerButton  != null) multiPlayerButton.onClick.RemoveAllListeners();
         if (singlePlayerButton != null) singlePlayerButton.onClick.RemoveAllListeners();
-        if (startButton != null) startButton.onClick.RemoveAllListeners();
+        if (startButton        != null) startButton.onClick.RemoveAllListeners();
+        if (avatarSelectButton != null) avatarSelectButton.onClick.RemoveAllListeners();
     }
 
     // ════════════════════════════════════════════════
@@ -112,6 +122,9 @@ public class MenuView : MonoBehaviour
 
         if (startButton != null)
             startButton.onClick.AddListener(OnStartClicked);
+
+        if (avatarSelectButton != null)
+            avatarSelectButton.onClick.AddListener(OnAvatarSelectClicked);
     }
 
     // ════════════════════════════════════════════════
@@ -141,6 +154,21 @@ public class MenuView : MonoBehaviour
 
         OnStartButtonClicked?.Invoke();
     }
+
+    private void OnAvatarSelectClicked() => OnAvatarSelectButtonClicked?.Invoke();
+
+    // ════════════════════════════════════════════════
+    // PUBLIC API — Avatar Panel
+    // ════════════════════════════════════════════════
+
+    /// <summary>Mở AvatarPanel với avatar đang chọn hiện tại highlighted.</summary>
+    public void OpenAvatarPanel(int currentIndex)
+    {
+        if (avatarPanel != null)
+            avatarPanel.Show(currentIndex);
+    }
+
+    public AvatarPanel GetAvatarPanel() => avatarPanel;
 
     // ════════════════════════════════════════════════
     // MOVE ELEMENT
@@ -259,17 +287,32 @@ public class MenuView : MonoBehaviour
     // IN-GAME UI
     // ════════════════════════════════════════════════
 
-    public void ShowInGameUI()
+    public void ShowInGameUI(bool isMultiplayer = true)
     {
         if (UIInPlay == null) return;
         UIInPlay.SetActive(true);
         SetRectPos(UIInPlay, Vector2.zero);
+
+        // Ẩn các UI chỉ dành cho multiplayer khi chơi single
+        if (multiplayerOnlyUI != null)
+        {
+            foreach (var go in multiplayerOnlyUI)
+                if (go != null) go.SetActive(isMultiplayer);
+        }
     }
 
     public void HideInGameUI()
     {
         if (UIInPlay == null) return;
         SetRectPos(UIInPlay, new Vector2(-3000f, 0f));
+
+        // Deactivate multiplayer-only UI ở đây để OnDisable của các component
+        // (PlayerListManager, ...) tự dọn dẹp subscription và data cũ
+        if (multiplayerOnlyUI != null)
+        {
+            foreach (var go in multiplayerOnlyUI)
+                if (go != null) go.SetActive(false);
+        }
     }
 
     // ════════════════════════════════════════════════

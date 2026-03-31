@@ -11,6 +11,8 @@ public class Model3DItem : MonoBehaviour
     [SerializeField] private TextMeshProUGUI categoryText;
     [SerializeField] private GameObject isUsedFrame;
     [SerializeField] private Button selectButton;
+    [SerializeField] private Button teleportButton;
+    [SerializeField] private Image frameHighlight;
 
     [Header("Spawn Settings")]
     [SerializeField] private float spawnDistanceFromPlayer = 3f;
@@ -20,6 +22,9 @@ public class Model3DItem : MonoBehaviour
     [SerializeField] private bool useModelOriginalRotation = true; // ✅ Dùng rotation gốc từ GLB
     [SerializeField] private bool facePlayer = false; // ✅ Có quay Y về phía player không
 
+    [Header("Highlight Settings")]
+    [SerializeField] private Color highlightColor = new Color(1f, 0.5f, 0f, 1f);
+
     [Header("Debug")]
     [SerializeField] private bool showDebug = false;
 
@@ -27,6 +32,60 @@ public class Model3DItem : MonoBehaviour
     private Texture2D modelTexture;
     private Vector3 originalModelRotation; // ✅ Rotation gốc từ GLB
     private bool hasLoadedRotation = false; // ✅ Flag check đã load rotation chưa
+    private Model3DPrefab model3DPrefabInstance;
+    private Model3DInfo model3DInfo;
+    private bool isSubscribedToEvent = false;
+
+    private void OnEnable()
+    {
+        if (!isSubscribedToEvent)
+        {
+            Model3DPrefabManager.OnModel3DPrefabSpawned += OnModel3DPrefabSpawned;
+            isSubscribedToEvent = true;
+        }
+
+        AdminModeManager.OnAdminModeChanged += ApplyAdminMode;
+        ApplyAdminMode(AdminModeManager.Instance != null && AdminModeManager.Instance.IsAdmin);
+
+        Model3DInfo.OnModel3DInfoShown  += OnModel3DInfoShown;
+        Model3DInfo.OnModel3DInfoHidden += OnModel3DInfoHidden;
+    }
+
+    private void OnDisable()
+    {
+        if (isSubscribedToEvent)
+        {
+            Model3DPrefabManager.OnModel3DPrefabSpawned -= OnModel3DPrefabSpawned;
+            isSubscribedToEvent = false;
+        }
+
+        AdminModeManager.OnAdminModeChanged -= ApplyAdminMode;
+
+        Model3DInfo.OnModel3DInfoShown  -= OnModel3DInfoShown;
+        Model3DInfo.OnModel3DInfoHidden -= OnModel3DInfoHidden;
+    }
+
+    private void OnModel3DInfoShown(int modelId)
+    {
+        if (frameHighlight == null) return;
+        bool isSelected = model3DData != null && model3DData.id == modelId;
+        frameHighlight.color = isSelected ? highlightColor : Color.white;
+    }
+
+    private void OnModel3DInfoHidden()
+    {
+        if (frameHighlight == null) return;
+        frameHighlight.color = Color.white;
+    }
+
+    private void ApplyAdminMode(bool isAdmin)
+    {
+        if (isUsedFrame != null)
+            isUsedFrame.SetActive(isAdmin && model3DData != null && model3DData.is_used == 1);
+
+        if (selectButton != null)
+            selectButton.gameObject.SetActive(isAdmin);
+    }
 
     public void Setup(Model3D model3D, Texture2D pathTexture)
     {
@@ -59,7 +118,8 @@ public class Model3DItem : MonoBehaviour
         // Hiển thị isUsedFrame nếu is_used = 1
         if (isUsedFrame != null)
         {
-            isUsedFrame.SetActive(model3D.is_used == 1);
+            bool isAdmin = AdminModeManager.Instance != null && AdminModeManager.Instance.IsAdmin;
+            isUsedFrame.SetActive(isAdmin && model3D.is_used == 1);
         }
 
         // Disable button nếu is_used = 1
@@ -84,6 +144,19 @@ public class Model3DItem : MonoBehaviour
         {
             selectButton.onClick.RemoveAllListeners();
             selectButton.onClick.AddListener(OnSelectModel3D);
+        }
+
+        if (teleportButton != null)
+        {
+            teleportButton.onClick.RemoveAllListeners();
+            teleportButton.onClick.AddListener(OnTeleportButtonClicked);
+        }
+
+        // Link prefab instance nếu đã spawn
+        if (model3D.is_used == 1 && Model3DPrefabManager.Instance != null &&
+            Model3DPrefabManager.Instance.IsModel3DSpawned(model3D.id))
+        {
+            FindModel3DPrefabInScene();
         }
 
         // ✅ LẤY ROTATION GỐC TỪ GLB (nếu model đã được spawn trước đó)
@@ -300,6 +373,100 @@ public class Model3DItem : MonoBehaviour
             Debug.Log($"[Model3DItem] UI updated: Button disabled, isUsedFrame shown");
     }
 
+    private void OnModel3DPrefabSpawned(int modelId, Model3DPrefab prefab)
+    {
+        if (model3DData != null && model3DData.id == modelId)
+        {
+            model3DPrefabInstance = prefab;
+            UpdateTeleportButtonState();
+
+            if (showDebug)
+                Debug.Log($"[Model3DItem] Prefab linked via event: {model3DData.name}");
+        }
+    }
+
+    private void FindModel3DPrefabInScene()
+    {
+        if (model3DData == null) return;
+
+        if (Model3DPrefabManager.Instance != null)
+        {
+            model3DPrefabInstance = Model3DPrefabManager.Instance.FindPrefabByID(model3DData.id);
+            if (model3DPrefabInstance != null)
+            {
+                UpdateTeleportButtonState();
+                return;
+            }
+        }
+
+        // Fallback: tìm trong scene
+        foreach (Model3DPrefab p in FindObjectsOfType<Model3DPrefab>())
+        {
+            if (p.GetData() != null && p.GetData().id == model3DData.id)
+            {
+                model3DPrefabInstance = p;
+                break;
+            }
+        }
+
+        UpdateTeleportButtonState();
+    }
+
+    private void OnTeleportButtonClicked()
+    {
+        if (model3DData == null) return;
+
+        if (model3DData.is_used != 1)
+        {
+            Debug.LogWarning($"[Model3DItem] Model not in scene: {model3DData.name}");
+            return;
+        }
+
+        if (model3DPrefabInstance == null)
+            FindModel3DPrefabInScene();
+
+        if (model3DPrefabInstance == null)
+        {
+            Debug.LogError($"[Model3DItem] Prefab not found: {model3DData.name} (ID: {model3DData.id})");
+            return;
+        }
+
+        if (model3DPrefabInstance.GetTeleportPoint() == null)
+        {
+            Debug.LogWarning($"[Model3DItem] TeleportPoint not assigned: {model3DData.name}");
+            return;
+        }
+
+        model3DPrefabInstance.TeleportPlayerToModel();
+
+        if (showDebug)
+            Debug.Log($"[Model3DItem] TeleportPlayerToModel: {model3DData.name}");
+
+        if (model3DInfo != null)
+            StartCoroutine(ShowModel3DInfoDelayed());
+    }
+
+    private IEnumerator ShowModel3DInfoDelayed()
+    {
+        yield return new WaitForSeconds(1f);
+        model3DInfo.ShowInfoWithPrefab(model3DData, modelTexture, model3DPrefabInstance);
+
+        if (showDebug)
+            Debug.Log($"[Model3DItem] Model3DInfo shown for: {model3DData.name}");
+    }
+
+    private void UpdateTeleportButtonState()
+    {
+        if (teleportButton == null) return;
+
+        bool isUsed      = model3DData != null && model3DData.is_used == 1;
+        bool hasPrefab   = model3DPrefabInstance != null;
+        bool hasTeleport = hasPrefab && model3DPrefabInstance.GetTeleportPoint() != null;
+
+        teleportButton.gameObject.SetActive(isUsed);
+        teleportButton.interactable = isUsed && hasPrefab && hasTeleport;
+    }
+
     private void UpdateButtonState()
     {
         if (selectButton != null)
@@ -312,11 +479,14 @@ public class Model3DItem : MonoBehaviour
 
         if (isUsedFrame != null)
         {
-            isUsedFrame.SetActive(model3DData.is_used == 1);
+            bool isAdmin = AdminModeManager.Instance != null && AdminModeManager.Instance.IsAdmin;
+            isUsedFrame.SetActive(isAdmin && model3DData.is_used == 1);
 
             if (showDebug)
                 Debug.Log($"[Model3DItem] isUsedFrame active: {isUsedFrame.activeSelf}");
         }
+
+        UpdateTeleportButtonState();
     }
 
     public void OnModel3DRemoved(int model3DId)
@@ -341,6 +511,7 @@ public class Model3DItem : MonoBehaviour
 
             int oldIsUsed = model3DData.is_used;
             model3DData.is_used = 0;
+            model3DPrefabInstance = null;
 
             if (showDebug)
                 Debug.Log($"[Model3DItem] is_used changed: {oldIsUsed} → {model3DData.is_used}");
@@ -357,14 +528,20 @@ public class Model3DItem : MonoBehaviour
         }
     }
 
+    public void SetModel3DInfo(Model3DInfo info) => model3DInfo = info;
+
     public Model3D GetData() => model3DData;
     public Texture2D GetTexture() => modelTexture;
 
     private void OnDestroy()
     {
         if (selectButton != null)
-        {
             selectButton.onClick.RemoveAllListeners();
-        }
+
+        if (teleportButton != null)
+            teleportButton.onClick.RemoveAllListeners();
+
+        if (isSubscribedToEvent)
+            Model3DPrefabManager.OnModel3DPrefabSpawned -= OnModel3DPrefabSpawned;
     }
 }

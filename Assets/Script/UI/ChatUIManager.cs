@@ -52,9 +52,6 @@ public class ChatUIManager : MonoBehaviour
         {
             Debug.LogError("[ChatUIManager] ChatNetworkHandler not found!");
         }
-
-        // Welcome message
-        DisplaySystemMessage("Đã kết nối");
     }
 
     private void OnDestroy()

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 public class NetworkManager : MonoBehaviour
 {
     [Header("Server Settings")]
-    [SerializeField] private string serverUrl = "wss://gallery-server.onrender.com";
+    [SerializeField] private string serverUrl = "https://unity-realtime-backend.vr360.com.vn/art-gallery";
     [SerializeField] private string roomName = "gallery";
 
     [Header("Sync Settings")]

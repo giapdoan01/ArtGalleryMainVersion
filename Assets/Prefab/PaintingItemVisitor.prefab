@@ -608,7 +608,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1012075521319179738
 RectTransform:
   m_ObjectHideFlags: 0
@@ -625,8 +625,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 197.7448, y: 197.7448}
+  m_AnchoredPosition: {x: 1.1175003, y: 0}
+  m_SizeDelta: {x: 95.6946, y: 95.6946}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2569777453983828401
 CanvasRenderer:
@@ -649,14 +649,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0, g: 1, b: 0.08628178, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10901, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 1215964526, guid: 78fa1eb8af7632545b51562c5464d8ee, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -831,8 +831,8 @@ RectTransform:
   m_GameObject: {fileID: 7208942485968420111}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 9006168532260369335}
   - {fileID: 1012075521319179738}
@@ -844,8 +844,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 200, y: 200}
+  m_AnchoredPosition: {x: 14.396973, y: 0}
+  m_SizeDelta: {x: 170, y: 170}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!222 &6485612600361364998
 CanvasRenderer:
@@ -875,7 +875,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -776402552, guid: 702d03cdcf6b50e49a5c1785dfe99972, type: 3}
+  m_Sprite: {fileID: -1105222114, guid: 2dabb5a287628d343b082a75c2896ebd, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -903,6 +903,8 @@ MonoBehaviour:
   isUsedFrame: {fileID: 3864941444291912380}
   selectButton: {fileID: 7880833481095315823}
   teleportButton: {fileID: 2418182088225156956}
+  frameHighlight: {fileID: 4901284802209889082}
+  highlightColor: {r: 0.77254903, g: 0.54509807, b: 0.16862746, a: 1}
   showDebug: 0
   paintingData:
     id: 0
@@ -996,7 +998,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 93535164, guid: 702d03cdcf6b50e49a5c1785dfe99972, type: 3}
+  m_Sprite: {fileID: -671612821, guid: 194f15afccfd7024dbfbe66f36773db5, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1

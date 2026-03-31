@@ -6,6 +6,7 @@ public class RuntimeTransformGizmo : MonoBehaviour
     [Header("Gizmo Settings")]
     [SerializeField] private float gizmoSize = 2f;
     [SerializeField] private float lineWidth = 0.5f;
+    [SerializeField] private float circleWidth = 0.15f;
     [SerializeField] private float hoverRadius = 0.15f;
     [SerializeField] private bool scaleWithDistance = true;
 
@@ -50,10 +51,16 @@ public class RuntimeTransformGizmo : MonoBehaviour
     private CameraFollow cameraFollow;
 
     // Callbacks
-    public event Action<Vector3, Vector3> OnTransformChanged;
+    // NOTE: Không dùng Action<Vector3,Vector3> vì IL2CPP WebGL không AOT-compile
+    // generic delegate với value type (struct) đúng cách → "function signature mismatch".
+    // Subscriber đọc position/rotation trực tiếp từ gizmo.transform.
+    public event Action OnTransformChanged;
+    public event Action OnDeactivated;
 
     // Public property to check if gizmo is active
     public bool IsActive => isActive;
+
+    private const int CIRCLE_SEGMENTS = 64;
 
     #region Unity Lifecycle
 
@@ -62,33 +69,25 @@ public class RuntimeTransformGizmo : MonoBehaviour
         if (renderCamera == null)
             renderCamera = Camera.main;
 
-        // Tìm CameraFollow component
         if (renderCamera != null)
         {
             cameraFollow = renderCamera.GetComponent<CameraFollow>();
             if (cameraFollow == null && showDebug)
-            {
                 Debug.LogWarning("[RuntimeTransformGizmo] CameraFollow component not found on camera!");
-            }
         }
 
-        // Create GL material
         CreateGLMaterial();
-
-        // Disable by default
         isActive = false;
         enabled = false;
 
         if (showDebug)
-            Debug.Log($"[RuntimeTransformGizmo]  Awake on {gameObject.name}");
+            Debug.Log($"[RuntimeTransformGizmo] Awake on {gameObject.name}");
     }
 
     private void Update()
     {
-        if (!isActive)
-            return;
+        if (!isActive) return;
 
-        // Kiểm tra camera
         if (renderCamera == null)
         {
             renderCamera = Camera.main;
@@ -99,61 +98,46 @@ public class RuntimeTransformGizmo : MonoBehaviour
             }
         }
 
-        // Update hover (chỉ khi không drag)
         if (!isDragging)
-        {
             UpdateHover();
-        }
 
-        // Handle input
         HandleInput();
     }
 
-    //  GL RENDERING - Luôn render trên cùng
     private void OnRenderObject()
     {
-        if (!isActive || glMaterial == null)
-            return;
-
-        glMaterial.SetPass(0);
-
-        GL.PushMatrix();
-        GL.MultMatrix(Matrix4x4.identity);
-        GL.Begin(GL.LINES);
+        if (!isActive || glMaterial == null) return;
 
         float size = CalculateGizmoSize();
         Vector3 origin = transform.position;
 
-        //  Move dùng Local, Rotate dùng World
-        Quaternion rotation = (currentMode == TransformMode.Move)
-            ? transform.rotation  // Local cho Move
-            : Quaternion.identity; // World cho Rotate
+        if (currentMode == TransformMode.Move)
+        {
+            glMaterial.SetPass(0);
+            GL.PushMatrix();
+            GL.MultMatrix(Matrix4x4.identity);
+            GL.Begin(GL.LINES);
 
-        //  X axis (Red)
-        Color xColor = GetAxisColor(GizmoAxis.X, xAxisColor);
-        float xWidth = GetAxisWidth(GizmoAxis.X);
-        DrawGLLine(origin, origin + rotation * Vector3.right * size, xColor, xWidth);
+            Quaternion rotation = transform.rotation;
+            DrawGLLine(origin, origin + rotation * Vector3.right * size,   GetAxisColor(GizmoAxis.X, xAxisColor), GetAxisWidth(GizmoAxis.X));
+            DrawGLLine(origin, origin + rotation * Vector3.up * size,      GetAxisColor(GizmoAxis.Y, yAxisColor), GetAxisWidth(GizmoAxis.Y));
+            DrawGLLine(origin, origin + rotation * Vector3.forward * size, GetAxisColor(GizmoAxis.Z, zAxisColor), GetAxisWidth(GizmoAxis.Z));
 
-        //  Y axis (Green)
-        Color yColor = GetAxisColor(GizmoAxis.Y, yAxisColor);
-        float yWidth = GetAxisWidth(GizmoAxis.Y);
-        DrawGLLine(origin, origin + rotation * Vector3.up * size, yColor, yWidth);
-
-        //  Z axis (Blue)
-        Color zColor = GetAxisColor(GizmoAxis.Z, zAxisColor);
-        float zWidth = GetAxisWidth(GizmoAxis.Z);
-        DrawGLLine(origin, origin + rotation * Vector3.forward * size, zColor, zWidth);
-
-        GL.End();
-        GL.PopMatrix();
+            GL.End();
+            GL.PopMatrix();
+        }
+        else if (currentMode == TransformMode.Rotate)
+        {
+            DrawRotateCircle(origin, size, Vector3.right,   GetAxisColor(GizmoAxis.X, xAxisColor), GetCircleWidth(GizmoAxis.X));
+            DrawRotateCircle(origin, size, Vector3.up,      GetAxisColor(GizmoAxis.Y, yAxisColor), GetCircleWidth(GizmoAxis.Y));
+            DrawRotateCircle(origin, size, Vector3.forward, GetAxisColor(GizmoAxis.Z, zAxisColor), GetCircleWidth(GizmoAxis.Z));
+        }
     }
 
     private void OnDestroy()
     {
         if (glMaterial != null)
-        {
             Destroy(glMaterial);
-        }
     }
 
     #endregion
@@ -162,46 +146,80 @@ public class RuntimeTransformGizmo : MonoBehaviour
 
     private void CreateGLMaterial()
     {
-        if (glMaterial == null)
-        {
-            Shader shader = Shader.Find("Hidden/Internal-Colored");
-            glMaterial = new Material(shader);
-            glMaterial.hideFlags = HideFlags.HideAndDontSave;
+        if (glMaterial != null) return;
 
-            //  KEY: Luôn render, không check depth
-            glMaterial.SetInt("_ZTest", (int)UnityEngine.Rendering.CompareFunction.Always);
-            glMaterial.SetInt("_ZWrite", 0);
-            glMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
+        Shader shader = Shader.Find("Hidden/Internal-Colored");
+        glMaterial = new Material(shader);
+        glMaterial.hideFlags = HideFlags.HideAndDontSave;
+        glMaterial.SetInt("_ZTest", (int)UnityEngine.Rendering.CompareFunction.Always);
+        glMaterial.SetInt("_ZWrite", 0);
+        glMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
 
-            if (showDebug)
-                Debug.Log("[RuntimeTransformGizmo]  GL Material created");
-        }
+        if (showDebug)
+            Debug.Log("[RuntimeTransformGizmo] GL Material created");
     }
 
     private void DrawGLLine(Vector3 start, Vector3 end, Color color, float width)
     {
-        //  Draw multiple lines để tạo độ dày
         int segments = Mathf.Max(1, Mathf.RoundToInt(width * 10f));
-
         for (int i = 0; i < segments; i++)
         {
             float offset = (i - segments / 2f) * 0.01f;
             Vector3 perpendicular = Vector3.Cross((end - start).normalized, renderCamera.transform.forward) * offset;
-
             GL.Color(color);
             GL.Vertex3(start.x + perpendicular.x, start.y + perpendicular.y, start.z + perpendicular.z);
             GL.Vertex3(end.x + perpendicular.x, end.y + perpendicular.y, end.z + perpendicular.z);
         }
     }
 
+    private void DrawRotateCircle(Vector3 center, float radius, Vector3 normal, Color color, float width)
+    {
+        // Build orthonormal basis for the circle plane
+        Vector3 tempUp = Mathf.Abs(Vector3.Dot(normal, Vector3.up)) < 0.99f ? Vector3.up : Vector3.forward;
+        Vector3 right = Vector3.Cross(normal, tempUp).normalized;
+        Vector3 up    = Vector3.Cross(right, normal).normalized;
+
+        int thickness = Mathf.Max(1, Mathf.RoundToInt(width * 10f));
+
+        glMaterial.SetPass(0);
+        GL.PushMatrix();
+        GL.MultMatrix(Matrix4x4.identity);
+        GL.Begin(GL.LINES);
+        GL.Color(color);
+
+        for (int i = 0; i < CIRCLE_SEGMENTS; i++)
+        {
+            float a1 = i       * Mathf.PI * 2f / CIRCLE_SEGMENTS;
+            float a2 = (i + 1) * Mathf.PI * 2f / CIRCLE_SEGMENTS;
+
+            Vector3 p1 = center + (right * Mathf.Cos(a1) + up * Mathf.Sin(a1)) * radius;
+            Vector3 p2 = center + (right * Mathf.Cos(a2) + up * Mathf.Sin(a2)) * radius;
+
+            for (int j = 0; j < thickness; j++)
+            {
+                float offset = (j - thickness / 2f) * 0.01f;
+                Vector3 perp = Vector3.Cross((p2 - p1).normalized, renderCamera.transform.forward) * offset;
+                GL.Vertex(p1 + perp);
+                GL.Vertex(p2 + perp);
+            }
+        }
+
+        GL.End();
+        GL.PopMatrix();
+    }
+
     private float GetAxisWidth(GizmoAxis axis)
     {
-        if (selectedAxis == axis)
-            return lineWidth * 4f;
-        else if (hoveredAxis == axis)
-            return lineWidth * 3f;
-        else
-            return lineWidth;
+        if (selectedAxis == axis) return lineWidth * 4f;
+        if (hoveredAxis == axis)  return lineWidth * 3f;
+        return lineWidth;
+    }
+
+    private float GetCircleWidth(GizmoAxis axis)
+    {
+        if (selectedAxis == axis) return circleWidth * 2f;
+        if (hoveredAxis == axis)  return circleWidth * 1.4f;
+        return circleWidth;
     }
 
     #endregion
@@ -228,6 +246,8 @@ public class RuntimeTransformGizmo : MonoBehaviour
         selectedAxis = GizmoAxis.None;
         hoveredAxis = GizmoAxis.None;
 
+        OnDeactivated?.Invoke();
+
         if (showDebug)
             Debug.Log($"[RuntimeTransformGizmo] DEACTIVATED for: {gameObject.name}");
     }
@@ -240,26 +260,21 @@ public class RuntimeTransformGizmo : MonoBehaviour
 
         Model3DTransformEditPopup model3DTransformEditPopup = FindObjectOfType<Model3DTransformEditPopup>();
         if (model3DTransformEditPopup != null)
-        {
             model3DTransformEditPopup.onGizmoModeChanged?.Invoke(mode.ToString());
-        }
 
         PaintingTransformEditPopup paintingTransformEditPopup = FindObjectOfType<PaintingTransformEditPopup>();
         if (paintingTransformEditPopup != null)
-        {
             paintingTransformEditPopup.onGizmoModeChanged?.Invoke(mode.ToString());
-        }
 
         if (showDebug)
-            Debug.Log($"[RuntimeTransformGizmo] Mode: {mode} (Space: {(mode == TransformMode.Move ? "Local" : "World")})");
+            Debug.Log($"[RuntimeTransformGizmo] Mode: {mode}");
     }
 
     public void SetSpace(TransformSpace space)
     {
         currentSpace = space;
-
         if (showDebug)
-            Debug.Log($"[RuntimeTransformGizmo] Space: {space} (Note: Move=Local, Rotate=World)");
+            Debug.Log($"[RuntimeTransformGizmo] Space: {space}");
     }
 
     public void SetSnapEnabled(bool enabled)
@@ -273,38 +288,25 @@ public class RuntimeTransformGizmo : MonoBehaviour
 
     private void HandleInput()
     {
-        // Ignore if pointer over UI input field
         if (UnityEngine.EventSystems.EventSystem.current != null)
         {
             var currentSelected = UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject;
             if (currentSelected != null && currentSelected.GetComponent<TMPro.TMP_InputField>() != null)
-            {
                 return;
-            }
         }
 
-        // Start drag
         if (Input.GetMouseButtonDown(0))
         {
             if (hoveredAxis != GizmoAxis.None)
-            {
                 StartDrag();
-            }
         }
 
-        // Update drag
         if (isDragging)
-        {
             UpdateDrag();
-        }
 
-        // End drag
         if (Input.GetMouseButtonUp(0) && isDragging)
-        {
             EndDrag();
-        }
 
-        // Keyboard shortcuts
         if (Input.GetKeyDown(KeyCode.Q))
             SetMode(TransformMode.Move);
         else if (Input.GetKeyDown(KeyCode.E))
@@ -319,24 +321,23 @@ public class RuntimeTransformGizmo : MonoBehaviour
         dragStartPosition = transform.position;
         dragStartRotation = transform.eulerAngles;
 
-        Vector3 normal = GetDragPlaneNormal();
-        dragPlane = new Plane(normal, transform.position);
+        if (currentMode == TransformMode.Move)
+        {
+            Vector3 normal = GetDragPlaneNormal();
+            dragPlane = new Plane(normal, transform.position);
+        }
 
-        // Disable camera control khi bắt đầu drag
         if (cameraFollow != null)
         {
             cameraFollow.enabled = false;
-            if (showDebug)
-                Debug.Log("[RuntimeTransformGizmo] CameraFollow disabled");
+            if (showDebug) Debug.Log("[RuntimeTransformGizmo] CameraFollow disabled");
         }
 
         if (showDebug)
         {
             Debug.Log($"[RuntimeTransformGizmo] ========== START DRAG ==========");
-            Debug.Log($"[RuntimeTransformGizmo] Mode: {currentMode}");
-            Debug.Log($"[RuntimeTransformGizmo] Selected axis: {selectedAxis}");
+            Debug.Log($"[RuntimeTransformGizmo] Mode: {currentMode}, Axis: {selectedAxis}");
             Debug.Log($"[RuntimeTransformGizmo] Start position: {dragStartPosition}");
-            Debug.Log($"[RuntimeTransformGizmo] =====================================");
         }
     }
 
@@ -344,12 +345,8 @@ public class RuntimeTransformGizmo : MonoBehaviour
     {
         switch (currentMode)
         {
-            case TransformMode.Move:
-                UpdateMoveDrag();
-                break;
-            case TransformMode.Rotate:
-                UpdateRotateDrag();
-                break;
+            case TransformMode.Move:   UpdateMoveDrag();   break;
+            case TransformMode.Rotate: UpdateRotateDrag(); break;
         }
     }
 
@@ -360,18 +357,15 @@ public class RuntimeTransformGizmo : MonoBehaviour
             Debug.Log($"[RuntimeTransformGizmo] ========== END DRAG ==========");
             Debug.Log($"[RuntimeTransformGizmo] Final position: {transform.position}");
             Debug.Log($"[RuntimeTransformGizmo] Final rotation: {transform.eulerAngles}");
-            Debug.Log($"[RuntimeTransformGizmo] =====================================");
         }
 
         isDragging = false;
         selectedAxis = GizmoAxis.None;
 
-        // Enable lại camera control khi kết thúc drag
         if (cameraFollow != null)
         {
             cameraFollow.enabled = true;
-            if (showDebug)
-                Debug.Log("[RuntimeTransformGizmo] CameraFollow enabled");
+            if (showDebug) Debug.Log("[RuntimeTransformGizmo] CameraFollow enabled");
         }
     }
 
@@ -381,11 +375,8 @@ public class RuntimeTransformGizmo : MonoBehaviour
 
     private void UpdateHover()
     {
-        // Ignore if dragging
-        if (isDragging)
-            return;
+        if (isDragging) return;
 
-        // Ignore if pointer over UI input field
         if (UnityEngine.EventSystems.EventSystem.current != null)
         {
             var currentSelected = UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject;
@@ -396,89 +387,80 @@ public class RuntimeTransformGizmo : MonoBehaviour
             }
         }
 
-        if (renderCamera == null)
-        {
-            hoveredAxis = GizmoAxis.None;
-            return;
-        }
+        if (renderCamera == null) { hoveredAxis = GizmoAxis.None; return; }
 
         Ray ray = renderCamera.ScreenPointToRay(Input.mousePosition);
         float size = CalculateGizmoSize();
-
         Vector3 origin = transform.position;
+        float screenHoverRadius = hoverRadius * 100f;
 
-        //  Move dùng Local, Rotate dùng World
-        Quaternion rotation = (currentMode == TransformMode.Move)
-            ? transform.rotation  // Local cho Move
-            : Quaternion.identity; // World cho Rotate
-
-        // Sử dụng screen-space distance
-        float screenHoverRadius = hoverRadius * 100f; // pixels
-
-        // Tìm axis gần nhất trên màn hình
         GizmoAxis closestAxis = GizmoAxis.None;
-        float closestScreenDistance = float.MaxValue;
+        float closestDist = float.MaxValue;
 
-        // Check X axis
-        float screenDistX = GetScreenDistanceToAxis(ray, origin, rotation * Vector3.right, size);
-        if (screenDistX < screenHoverRadius && screenDistX < closestScreenDistance)
+        if (currentMode == TransformMode.Move)
         {
-            closestScreenDistance = screenDistX;
-            closestAxis = GizmoAxis.X;
+            Quaternion rotation = transform.rotation;
+            float dx = GetScreenDistanceToAxis(ray, origin, rotation * Vector3.right,   size);
+            float dy = GetScreenDistanceToAxis(ray, origin, rotation * Vector3.up,      size);
+            float dz = GetScreenDistanceToAxis(ray, origin, rotation * Vector3.forward, size);
+
+            if (dx < screenHoverRadius && dx < closestDist) { closestDist = dx; closestAxis = GizmoAxis.X; }
+            if (dy < screenHoverRadius && dy < closestDist) { closestDist = dy; closestAxis = GizmoAxis.Y; }
+            if (dz < screenHoverRadius && dz < closestDist) { closestDist = dz; closestAxis = GizmoAxis.Z; }
+        }
+        else if (currentMode == TransformMode.Rotate)
+        {
+            float dx = GetScreenDistanceToCircle(origin, Vector3.right,   size);
+            float dy = GetScreenDistanceToCircle(origin, Vector3.up,      size);
+            float dz = GetScreenDistanceToCircle(origin, Vector3.forward, size);
+
+            if (dx < screenHoverRadius && dx < closestDist) { closestDist = dx; closestAxis = GizmoAxis.X; }
+            if (dy < screenHoverRadius && dy < closestDist) { closestDist = dy; closestAxis = GizmoAxis.Y; }
+            if (dz < screenHoverRadius && dz < closestDist) { closestDist = dz; closestAxis = GizmoAxis.Z; }
         }
 
-        // Check Y axis
-        float screenDistY = GetScreenDistanceToAxis(ray, origin, rotation * Vector3.up, size);
-        if (screenDistY < screenHoverRadius && screenDistY < closestScreenDistance)
-        {
-            closestScreenDistance = screenDistY;
-            closestAxis = GizmoAxis.Y;
-        }
-
-        // Check Z axis
-        float screenDistZ = GetScreenDistanceToAxis(ray, origin, rotation * Vector3.forward, size);
-        if (screenDistZ < screenHoverRadius && screenDistZ < closestScreenDistance)
-        {
-            closestScreenDistance = screenDistZ;
-            closestAxis = GizmoAxis.Z;
-        }
-
-        // Update hovered axis
         hoveredAxis = closestAxis;
     }
 
     private float GetScreenDistanceToAxis(Ray ray, Vector3 origin, Vector3 direction, float length)
     {
         Vector3 dir = direction.normalized;
-
-        // Sample nhiều điểm trên axis
         int samples = 20;
-        float minScreenDistance = float.MaxValue;
+        float minDist = float.MaxValue;
 
         for (int i = 0; i <= samples; i++)
         {
             float t = (float)i / samples;
-            Vector3 pointOnAxis = origin + dir * (t * length);
+            Vector3 point = origin + dir * (t * length);
+            Vector3 screenPoint = renderCamera.WorldToScreenPoint(point);
+            if (screenPoint.z < 0) continue;
 
-            // Convert to screen space
-            Vector3 screenPoint = renderCamera.WorldToScreenPoint(pointOnAxis);
-
-            // Check if behind camera
-            if (screenPoint.z < 0)
-                continue;
-
-            // Calculate screen distance
-            Vector2 screenPos = new Vector2(screenPoint.x, screenPoint.y);
-            Vector2 mousePos = Input.mousePosition;
-            float screenDist = Vector2.Distance(screenPos, mousePos);
-
-            if (screenDist < minScreenDistance)
-            {
-                minScreenDistance = screenDist;
-            }
+            float dist = Vector2.Distance(new Vector2(screenPoint.x, screenPoint.y), Input.mousePosition);
+            if (dist < minDist) minDist = dist;
         }
+        return minDist;
+    }
 
-        return minScreenDistance;
+    private float GetScreenDistanceToCircle(Vector3 center, Vector3 normal, float radius)
+    {
+        Vector3 tempUp = Mathf.Abs(Vector3.Dot(normal, Vector3.up)) < 0.99f ? Vector3.up : Vector3.forward;
+        Vector3 right  = Vector3.Cross(normal, tempUp).normalized;
+        Vector3 up     = Vector3.Cross(right, normal).normalized;
+
+        float minDist = float.MaxValue;
+        Vector2 mousePos = Input.mousePosition;
+
+        for (int i = 0; i < CIRCLE_SEGMENTS; i++)
+        {
+            float angle = i * Mathf.PI * 2f / CIRCLE_SEGMENTS;
+            Vector3 point = center + (right * Mathf.Cos(angle) + up * Mathf.Sin(angle)) * radius;
+            Vector3 screenPoint = renderCamera.WorldToScreenPoint(point);
+            if (screenPoint.z < 0) continue;
+
+            float dist = Vector2.Distance(new Vector2(screenPoint.x, screenPoint.y), mousePos);
+            if (dist < minDist) minDist = dist;
+        }
+        return minDist;
     }
 
     #endregion
@@ -487,39 +469,23 @@ public class RuntimeTransformGizmo : MonoBehaviour
 
     private void UpdateMoveDrag()
     {
-        if (renderCamera == null)
-        {
-            Debug.LogError($"[RuntimeTransformGizmo] renderCamera is null!");
-            return;
-        }
+        if (renderCamera == null) { Debug.LogError("[RuntimeTransformGizmo] renderCamera is null!"); return; }
 
         Ray ray = renderCamera.ScreenPointToRay(Input.mousePosition);
-
-        if (!dragPlane.Raycast(ray, out float enter))
-        {
-            return;
-        }
+        if (!dragPlane.Raycast(ray, out float enter)) return;
 
         Vector3 hitPoint = ray.GetPoint(enter);
         Vector3 dragStartHitPoint = GetDragStartHitPoint();
         Vector3 delta = hitPoint - dragStartHitPoint;
 
-        //  Move luôn dùng Local rotation
         Quaternion rotation = transform.rotation;
         Vector3 constrainedDelta = ConstrainToAxis(delta, rotation);
 
         if (snapEnabled)
-        {
             constrainedDelta = SnapVector(constrainedDelta, moveSnapValue);
-        }
 
-        Vector3 newPosition = dragStartPosition + constrainedDelta;
-
-        // Apply position to THIS transform
-        transform.position = newPosition;
-
-        // Trigger event
-        OnTransformChanged?.Invoke(newPosition, transform.eulerAngles);
+        transform.position = dragStartPosition + constrainedDelta;
+        OnTransformChanged?.Invoke();
     }
 
     private Vector3 GetDragStartHitPoint()
@@ -533,17 +499,10 @@ public class RuntimeTransformGizmo : MonoBehaviour
     {
         switch (selectedAxis)
         {
-            case GizmoAxis.X:
-                Vector3 xAxis = rotation * Vector3.right;
-                return xAxis * Vector3.Dot(delta, xAxis);
-            case GizmoAxis.Y:
-                Vector3 yAxis = rotation * Vector3.up;
-                return yAxis * Vector3.Dot(delta, yAxis);
-            case GizmoAxis.Z:
-                Vector3 zAxis = rotation * Vector3.forward;
-                return zAxis * Vector3.Dot(delta, zAxis);
-            default:
-                return delta;
+            case GizmoAxis.X: Vector3 xAxis = rotation * Vector3.right;   return xAxis * Vector3.Dot(delta, xAxis);
+            case GizmoAxis.Y: Vector3 yAxis = rotation * Vector3.up;      return yAxis * Vector3.Dot(delta, yAxis);
+            case GizmoAxis.Z: Vector3 zAxis = rotation * Vector3.forward; return zAxis * Vector3.Dot(delta, zAxis);
+            default: return delta;
         }
     }
 
@@ -562,36 +521,42 @@ public class RuntimeTransformGizmo : MonoBehaviour
 
     private void UpdateRotateDrag()
     {
-        Vector2 mouseDelta = (Vector2)Input.mousePosition - (Vector2)dragStartMousePos;
-        float angle = (mouseDelta.x / Screen.width) * rotateSensitivity;
+        Vector3 rotationAxis = GetRotationAxis();
+
+        // Project gizmo center to screen space
+        Vector3 centerScreen = renderCamera.WorldToScreenPoint(transform.position);
+        Vector2 center2D = new Vector2(centerScreen.x, centerScreen.y);
+
+        Vector2 startDir   = (Vector2)dragStartMousePos        - center2D;
+        Vector2 currentDir = (Vector2)(Vector3)Input.mousePosition - center2D;
+
+        if (startDir.sqrMagnitude < 1f || currentDir.sqrMagnitude < 1f)
+            return;
+
+        // Signed angle between start and current mouse direction around gizmo center
+        float angle = Vector2.SignedAngle(startDir, currentDir);
+
+        // Flip sign if camera faces the same direction as the axis
+        if (Vector3.Dot(rotationAxis, renderCamera.transform.forward) > 0)
+            angle = -angle;
 
         if (snapEnabled)
-        {
             angle = Mathf.Round(angle / rotateSnapValue) * rotateSnapValue;
-        }
 
-        Vector3 rotationAxis = GetRotationAxis();
         Quaternion rotation = Quaternion.AngleAxis(angle, rotationAxis);
-
-        //  Rotate luôn dùng World space
         transform.rotation = rotation * Quaternion.Euler(dragStartRotation);
 
-        OnTransformChanged?.Invoke(transform.position, transform.eulerAngles);
+        OnTransformChanged?.Invoke();
     }
 
     private Vector3 GetRotationAxis()
     {
-        //  Rotate luôn dùng World axes
         switch (selectedAxis)
         {
-            case GizmoAxis.X:
-                return Vector3.right; // World X
-            case GizmoAxis.Y:
-                return Vector3.up; // World Y
-            case GizmoAxis.Z:
-                return Vector3.forward; // World Z
-            default:
-                return Vector3.up;
+            case GizmoAxis.X: return Vector3.right;
+            case GizmoAxis.Y: return Vector3.up;
+            case GizmoAxis.Z: return Vector3.forward;
+            default:          return Vector3.up;
         }
     }
 
@@ -601,50 +566,47 @@ public class RuntimeTransformGizmo : MonoBehaviour
 
     private Color GetAxisColor(GizmoAxis axis, Color baseColor)
     {
-        if (selectedAxis == axis)
-            return selectedColor;
-
-        if (hoveredAxis == axis)
-            return hoverColor;
-
+        if (selectedAxis == axis) return selectedColor;
+        if (hoveredAxis == axis)  return hoverColor;
         return baseColor;
     }
 
     private float CalculateGizmoSize()
     {
-        if (!scaleWithDistance || renderCamera == null)
-            return gizmoSize;
-
+        if (!scaleWithDistance || renderCamera == null) return gizmoSize;
         float distance = Vector3.Distance(renderCamera.transform.position, transform.position);
-        return gizmoSize * (distance / 10f);
+        float scale = distance / 10f;
+        // Khi gần camera, tăng nhẹ kích thước vòng tròn rotate để dễ thao tác
+        if (currentMode == TransformMode.Rotate)
+            scale = Mathf.Max(scale, 0.6f);
+        return gizmoSize * scale;
     }
 
     private Vector3 GetDragPlaneNormal()
     {
-        if (renderCamera == null)
-            return Vector3.up;
+        if (renderCamera == null) return Vector3.up;
 
-        //  Move dùng Local, Rotate dùng World
-        Quaternion rotation = (currentMode == TransformMode.Move)
-            ? transform.rotation  // Local cho Move
-            : Quaternion.identity; // World cho Rotate
-
+        // Move always uses local rotation
+        Quaternion rotation = transform.rotation;
         Vector3 cameraForward = renderCamera.transform.forward;
 
+        Vector3 axis;
         switch (selectedAxis)
         {
-            case GizmoAxis.X:
-                Vector3 xAxis = rotation * Vector3.right;
-                return Vector3.Cross(xAxis, cameraForward).normalized;
-            case GizmoAxis.Y:
-                Vector3 yAxis = rotation * Vector3.up;
-                return Vector3.Cross(yAxis, cameraForward).normalized;
-            case GizmoAxis.Z:
-                Vector3 zAxis = rotation * Vector3.forward;
-                return Vector3.Cross(zAxis, cameraForward).normalized;
-            default:
-                return cameraForward;
+            case GizmoAxis.X: axis = rotation * Vector3.right;   break;
+            case GizmoAxis.Y: axis = rotation * Vector3.up;      break;
+            case GizmoAxis.Z: axis = rotation * Vector3.forward; break;
+            default: return cameraForward;
         }
+
+        // Drag plane normal = component of camera forward perpendicular to the move axis.
+        // This creates a camera-facing plane that contains the axis, so raycast drag
+        // stays accurate regardless of camera angle — same as Unity's Scene View gizmo.
+        Vector3 normal = cameraForward - Vector3.Dot(cameraForward, axis) * axis;
+        if (normal.sqrMagnitude < 0.001f)
+            normal = Vector3.Cross(axis, renderCamera.transform.right);
+
+        return normal.normalized;
     }
 
     #endregion

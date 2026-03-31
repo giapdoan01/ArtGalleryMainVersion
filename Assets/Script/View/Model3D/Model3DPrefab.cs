@@ -22,6 +22,7 @@ public class Model3DPrefab : MonoBehaviour
 
     [Header("Runtime Gizmo")]
     [SerializeField] private RuntimeTransformGizmo gizmo;
+    [SerializeField] private Model3DRotate model3DRotate;
 
     // ════════════════════════════════════════════════
     // HOVER OUTLINE
@@ -42,6 +43,12 @@ public class Model3DPrefab : MonoBehaviour
     [Tooltip("Tốc độ lerp (cao = nhanh hơn)")]
     [SerializeField] private float outlineLerpSpeed  = 8f;
 
+    [Header("Teleport")]
+    [Tooltip("Điểm teleport tự động trượt trên đường tròn bán kính 2 quanh prefab, luôn hướng về phía Local Player")]
+    [SerializeField] private Transform telePoint;
+    [SerializeField] private float     telePointMoveSpeed     = 10f;
+    [SerializeField] private float     telePointRotationSpeed = 10f;
+
     [Header("Debug")]
     [SerializeField] private bool showDebug = false;
 
@@ -61,6 +68,9 @@ public class Model3DPrefab : MonoBehaviour
     private float currentOutlineVal = 0f;
     private bool  outlineReady      = false;
 
+    // TelePoint
+    private Camera _mainCamera;
+
     // ════════════════════════════════════════════════
     // LIFECYCLE
     // ════════════════════════════════════════════════
@@ -69,11 +79,32 @@ public class Model3DPrefab : MonoBehaviour
     {
         if (gizmo == null)
             gizmo = GetComponent<RuntimeTransformGizmo>();
+
+        if (model3DRotate == null)
+            model3DRotate = GetComponentInChildren<Model3DRotate>();
+    }
+
+    private void OnEnable()
+    {
+        AdminModeManager.OnAdminModeChanged += ApplyAdminMode;
+        ApplyAdminMode(AdminModeManager.Instance != null && AdminModeManager.Instance.IsAdmin);
+    }
+
+    private void OnDisable()
+    {
+        AdminModeManager.OnAdminModeChanged -= ApplyAdminMode;
+    }
+
+    private void ApplyAdminMode(bool isAdmin)
+    {
+        if (transformButton != null) transformButton.gameObject.SetActive(isAdmin);
+        if (removeButton    != null) removeButton.gameObject.SetActive(isAdmin);
     }
 
     private void Start()
     {
         onDisplayButton += ShowButton;
+        _mainCamera = Camera.main;
 
         if (Model3DClickManager.Instance != null)
             Model3DClickManager.Instance.RegisterModel3D(this);
@@ -82,6 +113,7 @@ public class Model3DPrefab : MonoBehaviour
     private void Update()
     {
         UpdateOutlineLerp();
+        UpdateTelePoint();
     }
 
     private void OnDestroy()
@@ -93,7 +125,10 @@ public class Model3DPrefab : MonoBehaviour
             removeButton.onClick.RemoveListener(OnRemoveButtonClicked);
 
         if (gizmo != null)
+        {
             gizmo.OnTransformChanged -= OnGizmoTransformChanged;
+            gizmo.OnDeactivated      -= OnGizmoDeactivated;
+        }
 
         onDisplayButton -= ShowButton;
 
@@ -156,6 +191,69 @@ public class Model3DPrefab : MonoBehaviour
             if (img != null) img.enabled = isShow;
             removeButton.interactable = isShow;
         }
+    }
+
+    // ════════════════════════════════════════════════
+    // TELEPOINT
+    // ════════════════════════════════════════════════
+
+    private void UpdateTelePoint()
+    {
+        if (telePoint == null) return;
+        if (_mainCamera == null) { _mainCamera = Camera.main; return; }
+
+        Vector3 camPos   = _mainCamera.transform.position;
+        Vector3 modelPos = transform.position;
+
+        // Hướng từ tâm model → camera trên mặt phẳng XZ
+        Vector3 dir = new Vector3(camPos.x - modelPos.x, 0f, camPos.z - modelPos.z);
+        if (dir.sqrMagnitude < 0.001f) return;
+        dir.Normalize();
+
+        // Vị trí đích trên đường tròn bán kính 2, y = modelPos.y (world)
+        Vector3 worldTarget = new Vector3(modelPos.x + dir.x * 2f, modelPos.y, modelPos.z + dir.z * 2f);
+
+        // Chuyển sang local space của prefab, ép y = 0
+        Vector3 localTarget = transform.InverseTransformPoint(worldTarget);
+        localTarget.y = 0f;
+
+        // Smooth slide
+        telePoint.localPosition = Vector3.Lerp(
+            telePoint.localPosition,
+            localTarget,
+            Time.deltaTime * telePointMoveSpeed
+        );
+
+        // Billboard: nhìn về phía camera, trục Y cố định
+        Vector3 lookDir = camPos - telePoint.position;
+        lookDir.y = 0f;
+        if (lookDir.sqrMagnitude > 0.001f)
+        {
+            Quaternion targetRot = Quaternion.LookRotation(lookDir);
+            telePoint.rotation = Quaternion.Slerp(
+                telePoint.rotation,
+                targetRot,
+                Time.deltaTime * telePointRotationSpeed
+            );
+        }
+    }
+
+    /// <summary>
+    /// Set rotation nhìn vào model ngay trước khi teleport — player sẽ đối mặt model sau tele.
+    /// </summary>
+    public void TeleportPlayerToModel()
+    {
+        if (telePoint == null || PlayerTeleportManager.Instance == null) return;
+
+        Vector3 toModel = transform.position - telePoint.position;
+        toModel.y = 0f;
+        if (toModel.sqrMagnitude > 0.001f)
+            telePoint.rotation = Quaternion.LookRotation(toModel);
+
+        PlayerTeleportManager.Instance.TeleportToPoint(telePoint);
+
+        if (showDebug)
+            Debug.Log($"[Model3DPrefab] TeleportPlayerToModel: {telePoint.position}");
     }
 
     // ════════════════════════════════════════════════
@@ -240,10 +338,12 @@ public class Model3DPrefab : MonoBehaviour
             loadedGLBObject.transform.localPosition = Vector3.zero;
             loadedGLBObject.transform.localScale    = Vector3.one;
 
-            // ✅ Chờ 2 frame + end of frame để GLTFast apply materials xong
+            // Chờ vài frame để GLTFast apply materials xong.
+            // WaitForEndOfFrame KHÔNG được dùng trên WebGL (không hỗ trợ).
             yield return null;
             yield return null;
-            yield return new WaitForEndOfFrame();
+            yield return null;
+            yield return null;
 
             // Debug trước khi setup
             if (showDebug) DebugMeshRenderers();
@@ -345,27 +445,25 @@ public class Model3DPrefab : MonoBehaviour
             mr.gameObject.layer = LayerMask.NameToLayer("Model3D");
 
             // ── Collider ──────────────────────────────
+            // WebGL: AddComponent<MeshCollider>() (shared generic) = invoke_iiii trong WASM,
+            // kết hợp với PhysX WASM backend xử lý non-convex mesh → "function signature mismatch".
+            // Trên WebGL dùng infoCollider pre-assigned trên prefab thay vì tạo mới.
+#if !UNITY_WEBGL
             if (mr.GetComponent<MeshCollider>() == null)
             {
                 MeshCollider mc = mr.gameObject.AddComponent<MeshCollider>();
-                mc.sharedMesh   = mf.sharedMesh;
+                mc.sharedMesh = mf.sharedMesh;
 
-                try
+                if (mf.sharedMesh.vertexCount <= 255)
                 {
                     mc.convex    = true;
                     mc.isTrigger = true;
-                }
-                catch (Exception e)
-                {
-                    mc.convex    = false;
-                    mc.isTrigger = false;
-                    if (showDebug)
-                        Debug.LogWarning($"[Model3DPrefab] Convex failed ({mr.gameObject.name}): {e.Message} → non-convex");
                 }
 
                 if (showDebug)
                     Debug.Log($"[Model3DPrefab] Collider added: {mr.gameObject.name} | convex={mc.convex}");
             }
+#endif
 
             // ── Outline material ──────────────────────
             if (canSetupOutline)
@@ -398,6 +496,19 @@ public class Model3DPrefab : MonoBehaviour
         // ── infoCollider fallback ─────────────────────
         if (infoCollider == null)
             infoCollider = loadedGLBObject.GetComponentInChildren<Collider>();
+
+        // ── WebGL: set layer cho infoCollider ─────────
+        // Trên WebGL không có MeshCollider động, infoCollider là collider duy nhất.
+        // Phải set đúng layer "Model3D" để Model3DClickManager raycast trúng.
+#if UNITY_WEBGL
+        if (infoCollider != null)
+        {
+            infoCollider.gameObject.layer = LayerMask.NameToLayer("Model3D");
+            infoCollider.enabled = true;
+            if (showDebug)
+                Debug.Log($"[Model3DPrefab] WebGL: infoCollider layer set to Model3D — {infoCollider.gameObject.name}");
+        }
+#endif
 
         // ── Outline ready ─────────────────────────────
         if (canSetupOutline && outlineMatInstances.Count > 0)
@@ -462,8 +573,13 @@ public class Model3DPrefab : MonoBehaviour
     {
         if (model3DData == null || gizmo == null) return;
 
+        // Dừng rotate để người dùng move/rotate bằng gizmo chính xác
+        model3DRotate?.Stop();
+
         gizmo.OnTransformChanged -= OnGizmoTransformChanged;
         gizmo.OnTransformChanged += OnGizmoTransformChanged;
+        gizmo.OnDeactivated      -= OnGizmoDeactivated;
+        gizmo.OnDeactivated      += OnGizmoDeactivated;
         gizmo.Activate();
 
         if (Model3DTransformEditPopup.Instance != null)
@@ -471,6 +587,11 @@ public class Model3DPrefab : MonoBehaviour
             Model3DTransformEditPopup.Instance.Show(model3DData.id, model3DData, this);
             Model3DTransformEditPopup.Instance.onGizmoModeChanged.Invoke(gizmo.currentMode.ToString());
         }
+    }
+
+    private void OnGizmoDeactivated()
+    {
+        model3DRotate?.Resume();
     }
 
     private void OnRemoveButtonClicked()
@@ -510,9 +631,9 @@ public class Model3DPrefab : MonoBehaviour
         gallery?.OnModel3DRemovedFromScene(id);
     }
 
-    private void OnGizmoTransformChanged(Vector3 position, Vector3 rotation)
+    private void OnGizmoTransformChanged()
     {
-        Model3DTransformEditPopup.Instance?.UpdateFromGizmo(position, rotation);
+        Model3DTransformEditPopup.Instance?.UpdateFromGizmo(gizmo.transform.position, gizmo.transform.eulerAngles);
     }
 
     // ════════════════════════════════════════════════
@@ -558,8 +679,9 @@ public class Model3DPrefab : MonoBehaviour
     // PUBLIC GETTERS
     // ════════════════════════════════════════════════
 
-    public Model3D               GetData()      => model3DData;
-    public Texture2D             GetThumbnail() => thumbnailTexture;
-    public GameObject            GetLoadedGLB() => loadedGLBObject;
-    public RuntimeTransformGizmo GetGizmo()     => gizmo;
+    public Model3D               GetData()           => model3DData;
+    public Texture2D             GetThumbnail()      => thumbnailTexture;
+    public GameObject            GetLoadedGLB()      => loadedGLBObject;
+    public RuntimeTransformGizmo GetGizmo()          => gizmo;
+    public Transform             GetTeleportPoint()  => telePoint;
 }

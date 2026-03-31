@@ -106,6 +106,9 @@ public class MenuController : MonoBehaviour
         // ✅ Start button event (vào game)
         view.OnStartButtonClicked += HandleStartButtonClicked;
 
+        // ✅ Avatar select button → mở panel
+        view.OnAvatarSelectButtonClicked += HandleAvatarSelectButtonClicked;
+
         view.OnNameChanged += OnNameChanged;
 
         model.OnStatusChanged    += view.UpdateStatusText;
@@ -113,16 +116,32 @@ public class MenuController : MonoBehaviour
 
         if (nextAvatarButton     != null) nextAvatarButton.onClick.AddListener(ShowNext);
         if (previousAvatarButton != null) previousAvatarButton.onClick.AddListener(ShowPrevious);
+
+        // ✅ Bind AvatarPanel events
+        AvatarPanel panel = view.GetAvatarPanel();
+        if (panel != null)
+        {
+            panel.OnAvatarConfirmed += HandleAvatarConfirmed;
+            panel.OnAvatarPreview   += HandleAvatarPreview;
+        }
     }
 
     private void UnbindEvents()
     {
         if (view != null)
         {
-            view.OnMultiPlayerModeSelected  -= HandleMultiPlayerModeSelected;
-            view.OnSinglePlayerModeSelected -= HandleSinglePlayerModeSelected;
-            view.OnStartButtonClicked       -= HandleStartButtonClicked;
-            view.OnNameChanged              -= OnNameChanged;
+            view.OnMultiPlayerModeSelected   -= HandleMultiPlayerModeSelected;
+            view.OnSinglePlayerModeSelected  -= HandleSinglePlayerModeSelected;
+            view.OnStartButtonClicked        -= HandleStartButtonClicked;
+            view.OnAvatarSelectButtonClicked -= HandleAvatarSelectButtonClicked;
+            view.OnNameChanged               -= OnNameChanged;
+
+            AvatarPanel panel = view.GetAvatarPanel();
+            if (panel != null)
+            {
+                panel.OnAvatarConfirmed -= HandleAvatarConfirmed;
+                panel.OnAvatarPreview   -= HandleAvatarPreview;
+            }
         }
 
         if (model != null)
@@ -136,6 +155,29 @@ public class MenuController : MonoBehaviour
     }
 
     private void OnNameChanged(string name) => model.PlayerName = name;
+
+    // ════════════════════════════════════════════════
+    // AVATAR PANEL HANDLERS
+    // ════════════════════════════════════════════════
+
+    private void HandleAvatarSelectButtonClicked()
+    {
+        view.OpenAvatarPanel(currentIndex);
+    }
+
+    private void HandleAvatarPreview(int index)
+    {
+        ShowAvatarAtIndex(index);
+
+        if (showDebug) Debug.Log($"[MenuController] Avatar preview: {index}");
+    }
+
+    private void HandleAvatarConfirmed(int index)
+    {
+        ShowAvatarAtIndex(index);
+
+        if (showDebug) Debug.Log($"[MenuController] Avatar confirmed: {index}");
+    }
 
     // ════════════════════════════════════════════════
     // MODE SELECTION HANDLERS
@@ -243,7 +285,7 @@ public class MenuController : MonoBehaviour
             PlaceAtUnselectPoint(go);
 
         HideMenuPanel();
-        view.ShowInGameUI();
+        view.ShowInGameUI(isMultiplayer);
 
         if (loadingPanel != null)
             loadingPanel.gameObject.SetActive(true);

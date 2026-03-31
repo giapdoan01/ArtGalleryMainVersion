@@ -51,9 +51,9 @@ public class CombinedCursorManager : MonoBehaviour
 
     private enum CursorState
     {
-        Default,    // System cursor visible
-        Ground,     // ✅ THÊM STATE MỚI: Ground cursor (PlayerController quản lý preview)
-        Clickable   // Custom cursor visible
+        Default,   
+        Ground,    
+        Clickable   
     }
 
     #region Unity Lifecycle
@@ -258,21 +258,16 @@ public class CombinedCursorManager : MonoBehaviour
         }
         else if (PlayerController.IsShowingGroundCursor)
         {
-            // Priority 2: Đang trên Ground → ẩn system cursor
+            // Priority 2: Đang trên Ground → hiện cả system cursor lẫn cursorPreview
             if (currentState != CursorState.Ground)
             {
                 currentState = CursorState.Ground;
                 targetAlpha = 0f;
                 targetScale = 0.8f;
-                Cursor.visible = false; // ✅ Ẩn system cursor khi trên ground
+                Cursor.visible = true;
 
                 if (showDebug)
-                    Debug.Log("[CombinedCursorManager] → GROUND (Cursor.visible = false)");
-            }
-            else
-            {
-                // ✅ Vẫn đang ở Ground → đảm bảo cursor luôn ẩn mỗi frame
-                Cursor.visible = false;
+                    Debug.Log("[CombinedCursorManager] → GROUND (Cursor.visible = true)");
             }
         }
         else

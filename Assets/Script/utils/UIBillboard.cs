@@ -25,10 +25,29 @@ public class UIBillboard : MonoBehaviour
 
     private Camera mainCamera;
     private GameObject uiGameObject;
-    private Vector3 targetPosition; // Vị trí mục tiêu trên mặt cầu
-    private Quaternion targetRotation; // Rotation mục tiêu
+    private Vector3 targetPosition;
+    private Quaternion targetRotation;
+    private bool isAdminMode = false;
 
     #region Unity Lifecycle
+
+    private void OnEnable()
+    {
+        AdminModeManager.OnAdminModeChanged += ApplyAdminMode;
+        ApplyAdminMode(AdminModeManager.Instance != null && AdminModeManager.Instance.IsAdmin);
+    }
+
+    private void OnDisable()
+    {
+        AdminModeManager.OnAdminModeChanged -= ApplyAdminMode;
+    }
+
+    private void ApplyAdminMode(bool isAdmin)
+    {
+        isAdminMode = isAdmin;
+        if (uiGameObject != null)
+            uiGameObject.SetActive(isAdmin);
+    }
 
     private void Awake()
     {
@@ -60,7 +79,7 @@ public class UIBillboard : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (mainCamera == null || uiTransform == null)
+        if (!isAdminMode || mainCamera == null || uiTransform == null)
             return;
 
         // Tính khoảng cách đến player

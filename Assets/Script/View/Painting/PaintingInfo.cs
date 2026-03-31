@@ -36,6 +36,10 @@ public class PaintingInfo : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool showDebug = false;
 
+    // Event thông báo cho PaintingItem highlight khi info đang hiển thị
+    public static event System.Action<int> OnPaintingInfoShown;
+    public static event System.Action      OnPaintingInfoHidden;
+
     private Painting  currentPainting;
     private Texture2D currentTexture;
     private RectTransform imageRectTransform;
@@ -66,20 +70,18 @@ public class PaintingInfo : MonoBehaviour
             maxPainting = FindObjectOfType<MaxPainting>();
 #pragma warning restore CS0618
         }
-    }
 
-    private void Start()
-    {
+        // Đăng ký button ở Awake để tránh Start() chạy sau ShowInfo() override lại interactable
         if (closeButton != null)
             closeButton.onClick.AddListener(HideInfo);
 
-        // ✅ Đăng ký viewMaxButton
         if (viewMaxButton != null)
         {
             viewMaxButton.onClick.AddListener(OnViewMaxButtonClicked);
             viewMaxButton.interactable = false; // Disable cho đến khi có ảnh
         }
     }
+
 
     private void OnDestroy()
     {
@@ -125,8 +127,14 @@ public class PaintingInfo : MonoBehaviour
         currentPainting = painting;
         currentTexture  = texture;
 
+        // Đảm bảo gameObject active để coroutine có thể chạy và infoPanel hiển thị được
+        if (!gameObject.activeSelf)
+            gameObject.SetActive(true);
+
         if (infoPanel != null)
             infoPanel.SetActive(true);
+
+        OnPaintingInfoShown?.Invoke(painting.id);
 
         DisplayImage(texture, painting);
         DisplayName(painting);
@@ -167,6 +175,8 @@ public class PaintingInfo : MonoBehaviour
     {
         if (infoPanel != null)
             infoPanel.SetActive(false);
+
+        OnPaintingInfoHidden?.Invoke();
 
         // ✅ Ẩn MaxPainting nếu đang mở
         if (maxPainting != null)
