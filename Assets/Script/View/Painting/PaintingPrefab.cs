@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
-using System;
 
 public class PaintingPrefab : MonoBehaviour
 {
@@ -32,12 +31,12 @@ public class PaintingPrefab : MonoBehaviour
     [SerializeField] private float fadeOutSpeed    = 8.0f;
 
     [Header("Painting Name Tag — Landscape")]
-    [SerializeField] private GameObject nameTagFrameLandscape;  // Background landscape
+    [SerializeField] private GameObject nameTagFrameLandscape;
     [SerializeField] private TMP_Text   landscapeNameTagText;
     [SerializeField] private TMP_Text   landscapeAuthorTagText;
 
     [Header("Painting Name Tag — Portrait")]
-    [SerializeField] private GameObject nameTagFramePortrait;   // Background portrait
+    [SerializeField] private GameObject nameTagFramePortrait;
     [SerializeField] private TMP_Text   portraitNameTagText;
     [SerializeField] private TMP_Text   portraitAuthorTagText;
 
@@ -64,9 +63,12 @@ public class PaintingPrefab : MonoBehaviour
     private static readonly int OutlineScaleProp = Shader.PropertyToID("outlineScale");
 
     // ── Data ─────────────────────────────────────────
-    private Painting     paintingData;
-    private Texture2D    paintingTexture;
-    public  Action<bool> onDisplayButton;
+    private Painting  paintingData;
+    private Texture2D paintingTexture;
+
+    // ✅ Custom delegate — tránh Action<bool> gây invoke_viiii mismatch trên WebGL IL2CPP
+    public delegate void DisplayButtonHandler(bool show);
+    public DisplayButtonHandler onDisplayButton;
 
     // ── Frame type hiện tại ──────────────────────────
     private bool isLandscape = true;
@@ -194,7 +196,10 @@ public class PaintingPrefab : MonoBehaviour
             removeButton.onClick.RemoveListener(OnRemoveButtonClicked);
 
         if (gizmo != null)
+        {
             gizmo.OnTransformChanged -= OnGizmoTransformChanged;
+            gizmo.OnDeactivated      -= OnGizmoDeactivated;
+        }
 
         onDisplayButton -= DisplayButton;
 
@@ -289,14 +294,13 @@ public class PaintingPrefab : MonoBehaviour
 
         SaveOriginalFrameScales();
         ApplyTexture(texture);
-        SetupFrame(painting.frame_type, texture);  // ✅ set isLandscape trước
+        SetupFrame(painting.frame_type, texture);
         SetupInfoCollider();
         SetupTransformButton();
         SetupRemoveButton();
         ApplyTransformFromData(painting);
         SetupTeleportPoint();
-
-        SetNameTag(painting.name, painting.author); // ✅ gọi sau SetupFrame
+        SetNameTag(painting.name, painting.author);
     }
 
     private void SetupInfoCollider()
@@ -312,11 +316,10 @@ public class PaintingPrefab : MonoBehaviour
 
         if (infoCollider is BoxCollider box && quadRenderer != null)
         {
-            // Dùng lossyScale (world-space) để tính đúng kích thước sau khi frame/quad đã được scale
-            Vector3 quadWorld      = quadRenderer.transform.lossyScale;
-            Vector3 colliderWorld  = infoCollider.transform.lossyScale;
+            Vector3 quadWorld     = quadRenderer.transform.lossyScale;
+            Vector3 colliderWorld = infoCollider.transform.lossyScale;
 
-            box.size   = new Vector3(
+            box.size = new Vector3(
                 quadWorld.x / Mathf.Max(colliderWorld.x, 0.0001f),
                 quadWorld.y / Mathf.Max(colliderWorld.y, 0.0001f),
                 0.2f
@@ -330,20 +333,16 @@ public class PaintingPrefab : MonoBehaviour
 
     private void SetupTransformButton()
     {
-        if (transformButton != null)
-        {
-            transformButton.onClick.RemoveListener(OnTransformButtonClicked);
-            transformButton.onClick.AddListener(OnTransformButtonClicked);
-        }
+        if (transformButton == null) return;
+        transformButton.onClick.RemoveListener(OnTransformButtonClicked);
+        transformButton.onClick.AddListener(OnTransformButtonClicked);
     }
 
     private void SetupRemoveButton()
     {
-        if (removeButton != null)
-        {
-            removeButton.onClick.RemoveListener(OnRemoveButtonClicked);
-            removeButton.onClick.AddListener(OnRemoveButtonClicked);
-        }
+        if (removeButton == null) return;
+        removeButton.onClick.RemoveListener(OnRemoveButtonClicked);
+        removeButton.onClick.AddListener(OnRemoveButtonClicked);
     }
 
     private void SetupTeleportPoint()
@@ -364,18 +363,12 @@ public class PaintingPrefab : MonoBehaviour
     // NAME TAG
     // ════════════════════════════════════════════════
 
-    /// <summary>
-    /// Set text + show/hide đúng NameTagFrame theo frame type.
-    /// Landscape → nameTagFrameLandscape show, nameTagFramePortrait hide
-    /// Portrait  → nameTagFramePortrait show,  nameTagFrameLandscape hide
-    /// </summary>
     private void SetNameTag(string paintingName, string author)
     {
         string displayAuthor = string.IsNullOrEmpty(author) ? "Unknown" : author;
 
         if (isLandscape)
         {
-            // ── Show landscape name tag frame ────────────────────────────
             nameTagFrameLandscape?.SetActive(true);
             nameTagFramePortrait?.SetActive(false);
 
@@ -384,7 +377,6 @@ public class PaintingPrefab : MonoBehaviour
         }
         else
         {
-            // ── Show portrait name tag frame ─────────────────────────────
             nameTagFrameLandscape?.SetActive(false);
             nameTagFramePortrait?.SetActive(true);
 
@@ -402,22 +394,24 @@ public class PaintingPrefab : MonoBehaviour
 
     public void DisplayButton(bool isShow)
     {
-        isShow = !isShow;
+        // isShow = true  → đang mở popup  → ẩn button
+        // isShow = false → đóng popup     → hiện button
+        bool visible = !isShow;
 
-        if (infoCollider != null) infoCollider.enabled = isShow;
+        if (infoCollider != null) infoCollider.enabled = visible;
 
         if (transformButton != null)
         {
             Image img = transformButton.GetComponent<Image>();
-            if (img != null) img.enabled = isShow;
-            transformButton.interactable = isShow;
+            if (img != null) img.enabled = visible;
+            transformButton.interactable = visible;
         }
 
         if (removeButton != null)
         {
             Image img = removeButton.GetComponent<Image>();
-            if (img != null) img.enabled = isShow;
-            removeButton.interactable = isShow;
+            if (img != null) img.enabled = visible;
+            removeButton.interactable = visible;
         }
     }
 
@@ -447,68 +441,60 @@ public class PaintingPrefab : MonoBehaviour
 
         if (frameType == "wood_horizontal" || frameType == "landscape" || frameType == "1")
         {
-            isLandscape = true;
-
-            landscapeFrame?.gameObject.SetActive(true);
-            portraitFrame?.gameObject.SetActive(false);
-
-            if (quadRenderer != null)
-            {
-                Vector3 s = originalQuadScale;
-                s.x = originalQuadScale.y * ar;
-                quadRenderer.transform.localScale = s;
-            }
-
-            if (landscapeFrame != null)
-            {
-                Vector3 s = originalLandscapeFrameScale;
-                s.x = originalLandscapeFrameScale.x * ar;
-                landscapeFrame.localScale = s;
-            }
+            SetupLandscapeFrame(ar);
         }
         else if (frameType == "wood_vertical" || frameType == "portrait" || frameType == "2")
         {
-            isLandscape = false;
-
-            landscapeFrame?.gameObject.SetActive(false);
-            portraitFrame?.gameObject.SetActive(true);
-
-            if (quadRenderer != null)
-            {
-                Vector3 s = originalQuadScale;
-                s.y = originalQuadScale.x / ar;
-                quadRenderer.transform.localScale = s;
-            }
-
-            if (portraitFrame != null)
-            {
-                Vector3 s = originalPortraitFrameScale;
-                s.z = originalPortraitFrameScale.z / ar;
-                portraitFrame.localScale = s;
-            }
+            SetupPortraitFrame(ar);
         }
         else
         {
-            isLandscape = true; // fallback → landscape
-
             if (showDebug) Debug.LogWarning($"[PaintingPrefab] Unknown frameType '{frameType}', fallback landscape");
+            SetupLandscapeFrame(ar);
+        }
+    }
 
-            landscapeFrame?.gameObject.SetActive(true);
-            portraitFrame?.gameObject.SetActive(false);
+    private void SetupLandscapeFrame(float ar)
+    {
+        isLandscape = true;
 
-            if (quadRenderer != null)
-            {
-                Vector3 s = originalQuadScale;
-                s.x = originalQuadScale.y * ar;
-                quadRenderer.transform.localScale = s;
-            }
+        landscapeFrame?.gameObject.SetActive(true);
+        portraitFrame?.gameObject.SetActive(false);
 
-            if (landscapeFrame != null)
-            {
-                Vector3 s = originalLandscapeFrameScale;
-                s.x = originalLandscapeFrameScale.x * ar;
-                landscapeFrame.localScale = s;
-            }
+        if (quadRenderer != null)
+        {
+            Vector3 s = originalQuadScale;
+            s.x = originalQuadScale.y * ar;
+            quadRenderer.transform.localScale = s;
+        }
+
+        if (landscapeFrame != null)
+        {
+            Vector3 s = originalLandscapeFrameScale;
+            s.x = originalLandscapeFrameScale.x * ar;
+            landscapeFrame.localScale = s;
+        }
+    }
+
+    private void SetupPortraitFrame(float ar)
+    {
+        isLandscape = false;
+
+        landscapeFrame?.gameObject.SetActive(false);
+        portraitFrame?.gameObject.SetActive(true);
+
+        if (quadRenderer != null)
+        {
+            Vector3 s = originalQuadScale;
+            s.y = originalQuadScale.x / ar;
+            quadRenderer.transform.localScale = s;
+        }
+
+        if (portraitFrame != null)
+        {
+            Vector3 s = originalPortraitFrameScale;
+            s.z = originalPortraitFrameScale.z / ar;
+            portraitFrame.localScale = s;
         }
     }
 
@@ -522,13 +508,21 @@ public class PaintingPrefab : MonoBehaviour
 
         gizmo.OnTransformChanged -= OnGizmoTransformChanged;
         gizmo.OnTransformChanged += OnGizmoTransformChanged;
+        gizmo.OnDeactivated      -= OnGizmoDeactivated;
+        gizmo.OnDeactivated      += OnGizmoDeactivated;
         gizmo.Activate();
 
         if (PaintingTransformEditPopup.Instance != null)
         {
             PaintingTransformEditPopup.Instance.Show(paintingData.id, paintingData, this);
+            // ✅ Invoke qua custom delegate — không dùng Action<string>
             PaintingTransformEditPopup.Instance.onGizmoModeChanged.Invoke(gizmo.currentMode.ToString());
         }
+    }
+
+    private void OnGizmoDeactivated()
+    {
+        // placeholder — giữ đồng bộ với Model3DPrefab để tránh invoke_v mismatch trên WebGL
     }
 
     private void OnRemoveButtonClicked()
@@ -555,15 +549,23 @@ public class PaintingPrefab : MonoBehaviour
         {
             APIManager.Instance.RemovePaintingOrModel(
                 paintingData.id, "painting",
-                () =>
-                {
-                    NotifyGalleryItemRemoved(paintingData.id);
-                    Destroy(gameObject);
-                    PaintingPrefabManager.Instance?.ReloadAllPaintings();
-                },
-                err => Debug.LogError($"[PaintingPrefab] Remove failed: {err}")
+                OnRemoveSuccess,
+                OnRemoveError
             );
         }
+    }
+
+    // ✅ Named method thay lambda — tránh closure gây invoke mismatch trên WebGL
+    private void OnRemoveSuccess()
+    {
+        NotifyGalleryItemRemoved(paintingData.id);
+        Destroy(gameObject);
+        PaintingPrefabManager.Instance?.ReloadAllPaintings();
+    }
+
+    private void OnRemoveError(string err)
+    {
+        Debug.LogError($"[PaintingPrefab] Remove failed: {err}");
     }
 
     private void NotifyGalleryItemRemoved(int id)
@@ -573,7 +575,11 @@ public class PaintingPrefab : MonoBehaviour
 
     private void OnGizmoTransformChanged()
     {
-        PaintingTransformEditPopup.Instance?.UpdateFromGizmo(gizmo.transform.position, gizmo.transform.eulerAngles);
+        if (gizmo == null) return;
+        PaintingTransformEditPopup.Instance?.UpdateFromGizmo(
+            gizmo.transform.position,
+            gizmo.transform.eulerAngles
+        );
     }
 
     // ════════════════════════════════════════════════

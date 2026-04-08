@@ -113,10 +113,10 @@ TextureImporter:
       name: UI068-7-03_0
       rect:
         serializedVersion: 2
-        x: 1964
-        y: 1438
-        width: 5936
-        height: 3023
+        x: 238
+        y: 261
+        width: 5991
+        height: 3354
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}

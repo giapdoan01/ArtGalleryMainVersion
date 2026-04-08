@@ -9,6 +9,6 @@ public class PlayerListItem : MonoBehaviour
     public void Setup(string playerName, bool isLocalPlayer)
     {
         playerNameText.text = playerName;
-        playerNameText.color = isLocalPlayer ? localPlayerColor : Color.black;
+        playerNameText.color = isLocalPlayer ? localPlayerColor : Color.white;
     }
 }

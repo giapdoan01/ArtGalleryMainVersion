@@ -1,58 +1,58 @@
-using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-/// <summary>
-/// PaintingTransformEditPopup - Popup để chỉnh sửa transform của Painting
-/// Đồng bộ với RuntimeTransformGizmo
-/// </summary>
 public class PaintingTransformEditPopup : MonoBehaviour
 {
     private static PaintingTransformEditPopup _instance;
     public static PaintingTransformEditPopup Instance => _instance;
 
     [Header("UI References")]
-    [SerializeField] private GameObject popupPanel;
-    [SerializeField] private TMP_InputField paintingIdInput;
-    [SerializeField] private TMP_InputField paintingNameInput;
-    [SerializeField] private TMP_InputField posXInput;
-    [SerializeField] private TMP_InputField posYInput;
-    [SerializeField] private TMP_InputField posZInput;
-    [SerializeField] private TMP_InputField rotXInput;
-    [SerializeField] private TMP_InputField rotYInput;
-    [SerializeField] private TMP_InputField rotZInput;
-    [SerializeField] private Button saveButton;
-    [SerializeField] private Button cancelButton;
-    [SerializeField] private Button resetButton;
-    [SerializeField] private TextMeshProUGUI statusText;
-    [SerializeField] private TextMeshProUGUI gizmoModeText;
+    [SerializeField] private GameObject       popupPanel;
+    [SerializeField] private TMP_InputField   paintingIdInput;
+    [SerializeField] private TMP_InputField   paintingNameInput;
+    [SerializeField] private TMP_InputField   posXInput;
+    [SerializeField] private TMP_InputField   posYInput;
+    [SerializeField] private TMP_InputField   posZInput;
+    [SerializeField] private TMP_InputField   rotXInput;
+    [SerializeField] private TMP_InputField   rotYInput;
+    [SerializeField] private TMP_InputField   rotZInput;
+    [SerializeField] private Button           saveButton;
+    [SerializeField] private Button           cancelButton;
+    [SerializeField] private Button           resetButton;
+    [SerializeField] private TextMeshProUGUI  statusText;
+    [SerializeField] private TextMeshProUGUI  gizmoModeText;
 
     [Header("Transform Preview Settings")]
-    [SerializeField] private bool updateInRealtime = true;
-    [SerializeField] private float updateDelay = 0.1f;
+    [SerializeField] private bool  updateInRealtime = true;
+    [SerializeField] private float updateDelay      = 0.1f;
 
     [Header("Debug")]
     [SerializeField] private bool showDebug = true;
 
-    // Data storage
-    private int currentPaintingId;
-    private Painting currentPaintingData;
+    // ── Data ─────────────────────────────────────────
+    private int            currentPaintingId;
+    private Painting       currentPaintingData;
     private PaintingPrefab targetPaintingPrefab;
 
-    // Transform tracking
+    // ── Transform tracking ───────────────────────────
     private Vector3 originalPosition;
     private Vector3 originalRotation;
     private Vector3 newPosition;
     private Vector3 newRotation;
-    private bool hasChanges = false;
+    private bool    hasChanges  = false;
 
-    // Input handling
+    // ── Input handling ───────────────────────────────
     private float nextUpdateTime;
-    private bool isPopulating = false;
-    public Action<string> onGizmoModeChanged;
+    private bool  isPopulating = false;
 
-    #region Unity Lifecycle
+    // ✅ Custom delegate — tránh Action<string> gây invoke_iiii mismatch trên WebGL IL2CPP
+    public delegate void GizmoModeChangedHandler(string mode);
+    public GizmoModeChangedHandler onGizmoModeChanged;
+
+    // ════════════════════════════════════════════════
+    // LIFECYCLE
+    // ════════════════════════════════════════════════
 
     private void Awake()
     {
@@ -68,84 +68,87 @@ public class PaintingTransformEditPopup : MonoBehaviour
         SetupInputFields();
         Hide();
 
+        // ✅ Subscribe bằng named method — không dùng lambda
+        onGizmoModeChanged += OnUpdateGizmoMode;
+
         if (showDebug)
             Debug.Log("[PaintingTransformEditPopup] Initialized");
-        onGizmoModeChanged += OnUpdateGizmoMode;
     }
 
     private void OnDestroy()
     {
         RemoveButtonListeners();
+        RemoveInputListeners();
         onGizmoModeChanged -= OnUpdateGizmoMode;
     }
 
-    #endregion
-
-    #region Setup
+    // ════════════════════════════════════════════════
+    // SETUP
+    // ════════════════════════════════════════════════
 
     private void SetupButtons()
     {
-        if (saveButton != null)
-            saveButton.onClick.AddListener(OnSaveClicked);
-
-        if (cancelButton != null)
-            cancelButton.onClick.AddListener(OnCancelClicked);
-
-        if (resetButton != null)
-            resetButton.onClick.AddListener(OnResetClicked);
+        if (saveButton   != null) saveButton.onClick.AddListener(OnSaveClicked);
+        if (cancelButton != null) cancelButton.onClick.AddListener(OnCancelClicked);
+        if (resetButton  != null) resetButton.onClick.AddListener(OnResetClicked);
     }
 
     private void RemoveButtonListeners()
     {
-        if (saveButton != null)
-            saveButton.onClick.RemoveListener(OnSaveClicked);
-
-        if (cancelButton != null)
-            cancelButton.onClick.RemoveListener(OnCancelClicked);
-
-        if (resetButton != null)
-            resetButton.onClick.RemoveListener(OnResetClicked);
+        if (saveButton   != null) saveButton.onClick.RemoveListener(OnSaveClicked);
+        if (cancelButton != null) cancelButton.onClick.RemoveListener(OnCancelClicked);
+        if (resetButton  != null) resetButton.onClick.RemoveListener(OnResetClicked);
     }
 
     private void SetupInputFields()
     {
-        if (posXInput != null)
-            posXInput.onValueChanged.AddListener(val => OnPositionChanged());
-
-        if (posYInput != null)
-            posYInput.onValueChanged.AddListener(val => OnPositionChanged());
-
-        if (posZInput != null)
-            posZInput.onValueChanged.AddListener(val => OnPositionChanged());
-
-        if (rotXInput != null)
-            rotXInput.onValueChanged.AddListener(val => OnRotationChanged());
-
-        if (rotYInput != null)
-            rotYInput.onValueChanged.AddListener(val => OnRotationChanged());
-
-        if (rotZInput != null)
-            rotZInput.onValueChanged.AddListener(val => OnRotationChanged());
+        // ✅ Named method thay lambda — tránh anonymous closure gây signature mismatch trên WebGL
+        if (posXInput != null) posXInput.onValueChanged.AddListener(OnPosXChanged);
+        if (posYInput != null) posYInput.onValueChanged.AddListener(OnPosYChanged);
+        if (posZInput != null) posZInput.onValueChanged.AddListener(OnPosZChanged);
+        if (rotXInput != null) rotXInput.onValueChanged.AddListener(OnRotXChanged);
+        if (rotYInput != null) rotYInput.onValueChanged.AddListener(OnRotYChanged);
+        if (rotZInput != null) rotZInput.onValueChanged.AddListener(OnRotZChanged);
     }
+
+    private void RemoveInputListeners()
+    {
+        if (posXInput != null) posXInput.onValueChanged.RemoveListener(OnPosXChanged);
+        if (posYInput != null) posYInput.onValueChanged.RemoveListener(OnPosYChanged);
+        if (posZInput != null) posZInput.onValueChanged.RemoveListener(OnPosZChanged);
+        if (rotXInput != null) rotXInput.onValueChanged.RemoveListener(OnRotXChanged);
+        if (rotYInput != null) rotYInput.onValueChanged.RemoveListener(OnRotYChanged);
+        if (rotZInput != null) rotZInput.onValueChanged.RemoveListener(OnRotZChanged);
+    }
+
+    // ── Input field named callbacks ──────────────────
+    private void OnPosXChanged(string _) => OnPositionChanged();
+    private void OnPosYChanged(string _) => OnPositionChanged();
+    private void OnPosZChanged(string _) => OnPositionChanged();
+    private void OnRotXChanged(string _) => OnRotationChanged();
+    private void OnRotYChanged(string _) => OnRotationChanged();
+    private void OnRotZChanged(string _) => OnRotationChanged();
+
+    // ════════════════════════════════════════════════
+    // GIZMO MODE
+    // ════════════════════════════════════════════════
+
     public void OnUpdateGizmoMode(string mode)
     {
-        if (mode == "Move")
+        if (gizmoModeText == null) return;
+
+        switch (mode)
         {
-            gizmoModeText.text = "Chế độ chỉnh sửa: Di chuyển";
-        }
-        else if (mode == "Rotate")
-        {
-            gizmoModeText.text = "Chế độ chỉnh sửa: Xoay";
-        }
-        else if (mode == "Scale")
-        {
-            gizmoModeText.text = "Chế độ chỉnh sửa: Tỉ lệ";
+            case "Move":   gizmoModeText.text = "Chế độ chỉnh sửa: Di chuyển"; break;
+            case "Rotate": gizmoModeText.text = "Chế độ chỉnh sửa: Xoay";      break;
+            case "Scale":  gizmoModeText.text = "Chế độ chỉnh sửa: Tỉ lệ";     break;
+            default:       gizmoModeText.text = $"Chế độ: {mode}";              break;
         }
     }
 
-    #endregion
-
-    #region Show/Hide
+    // ════════════════════════════════════════════════
+    // SHOW / HIDE
+    // ════════════════════════════════════════════════
 
     public void Show(int paintingId, Painting paintingData, PaintingPrefab paintingPrefab)
     {
@@ -155,31 +158,29 @@ public class PaintingTransformEditPopup : MonoBehaviour
             return;
         }
 
-        currentPaintingId = paintingId;
+        currentPaintingId   = paintingId;
         currentPaintingData = paintingData;
         targetPaintingPrefab = paintingPrefab;
 
-        // Store original transform
         originalPosition = paintingPrefab.transform.position;
         originalRotation = paintingPrefab.transform.eulerAngles;
 
-        // Reset tracking
         newPosition = originalPosition;
         newRotation = originalRotation;
-        hasChanges = false;
+        hasChanges  = false;
 
-        // Populate UI
         PopulateInputFields();
 
-        // Show panel
         if (popupPanel != null)
             popupPanel.SetActive(true);
 
         UpdateStatus("Chỉnh sửa transform... (Drag gizmo hoặc nhập số)", Color.white);
 
-        if (showDebug)
-            Debug.Log($"[PaintingTransformEditPopup] Showing for painting: {paintingData.name} (ID: {paintingId})");
+        // ✅ Invoke custom delegate — an toàn trên WebGL
         paintingPrefab.onDisplayButton.Invoke(true);
+
+        if (showDebug)
+            Debug.Log($"[PaintingTransformEditPopup] Showing for: {paintingData.name} (ID: {paintingId})");
     }
 
     public void Hide()
@@ -187,64 +188,47 @@ public class PaintingTransformEditPopup : MonoBehaviour
         if (popupPanel != null)
             popupPanel.SetActive(false);
 
-        // Deactivate gizmo
         if (targetPaintingPrefab != null)
         {
             RuntimeTransformGizmo gizmo = targetPaintingPrefab.GetGizmo();
             if (gizmo != null && gizmo.IsActive)
-            {
                 gizmo.Deactivate();
-            }
         }
 
-        // Clear references
         targetPaintingPrefab = null;
-        currentPaintingData = null;
+        currentPaintingData  = null;
 
         if (showDebug)
             Debug.Log("[PaintingTransformEditPopup] Hidden");
     }
 
-    #endregion
-
-    #region Populate UI
+    // ════════════════════════════════════════════════
+    // POPULATE UI
+    // ════════════════════════════════════════════════
 
     private void PopulateInputFields()
     {
         isPopulating = true;
 
-        // Painting info (read-only)
         if (paintingIdInput != null)
         {
-            paintingIdInput.text = currentPaintingId.ToString();
+            paintingIdInput.text        = currentPaintingId.ToString();
             paintingIdInput.interactable = false;
         }
 
         if (paintingNameInput != null)
         {
-            paintingNameInput.text = currentPaintingData.name;
+            paintingNameInput.text        = currentPaintingData.name;
             paintingNameInput.interactable = false;
         }
 
-        // Position
-        if (posXInput != null)
-            posXInput.text = originalPosition.x.ToString("F3");
+        if (posXInput != null) posXInput.text = originalPosition.x.ToString("F3");
+        if (posYInput != null) posYInput.text = originalPosition.y.ToString("F3");
+        if (posZInput != null) posZInput.text = originalPosition.z.ToString("F3");
 
-        if (posYInput != null)
-            posYInput.text = originalPosition.y.ToString("F3");
-
-        if (posZInput != null)
-            posZInput.text = originalPosition.z.ToString("F3");
-
-        // Rotation
-        if (rotXInput != null)
-            rotXInput.text = originalRotation.x.ToString("F2");
-
-        if (rotYInput != null)
-            rotYInput.text = originalRotation.y.ToString("F2");
-
-        if (rotZInput != null)
-            rotZInput.text = originalRotation.z.ToString("F2");
+        if (rotXInput != null) rotXInput.text = originalRotation.x.ToString("F2");
+        if (rotYInput != null) rotYInput.text = originalRotation.y.ToString("F2");
+        if (rotZInput != null) rotZInput.text = originalRotation.z.ToString("F2");
 
         isPopulating = false;
 
@@ -252,17 +236,14 @@ public class PaintingTransformEditPopup : MonoBehaviour
             Debug.Log("[PaintingTransformEditPopup] Input fields populated");
     }
 
-    #endregion
-
-    #region Input Callbacks
+    // ════════════════════════════════════════════════
+    // INPUT CALLBACKS
+    // ════════════════════════════════════════════════
 
     private void OnPositionChanged()
     {
-        if (isPopulating || !updateInRealtime || targetPaintingPrefab == null)
-            return;
-
-        if (Time.time < nextUpdateTime)
-            return;
+        if (isPopulating || !updateInRealtime || targetPaintingPrefab == null) return;
+        if (Time.time < nextUpdateTime) return;
 
         nextUpdateTime = Time.time + updateDelay;
 
@@ -275,17 +256,14 @@ public class PaintingTransformEditPopup : MonoBehaviour
             hasChanges = true;
 
             if (showDebug)
-                Debug.Log($"[PaintingTransformEditPopup] Position changed from input: {newPosition}");
+                Debug.Log($"[PaintingTransformEditPopup] Position from input: {newPosition}");
         }
     }
 
     private void OnRotationChanged()
     {
-        if (isPopulating || !updateInRealtime || targetPaintingPrefab == null)
-            return;
-
-        if (Time.time < nextUpdateTime)
-            return;
+        if (isPopulating || !updateInRealtime || targetPaintingPrefab == null) return;
+        if (Time.time < nextUpdateTime) return;
 
         nextUpdateTime = Time.time + updateDelay;
 
@@ -298,18 +276,17 @@ public class PaintingTransformEditPopup : MonoBehaviour
             hasChanges = true;
 
             if (showDebug)
-                Debug.Log($"[PaintingTransformEditPopup] Rotation changed from input: {newRotation}");
+                Debug.Log($"[PaintingTransformEditPopup] Rotation from input: {newRotation}");
         }
     }
 
-    #endregion
-
-    #region Gizmo Integration
+    // ════════════════════════════════════════════════
+    // GIZMO INTEGRATION
+    // ════════════════════════════════════════════════
 
     public void UpdateFromGizmo(Vector3 position, Vector3 rotation)
     {
-        if (isPopulating)
-            return;
+        if (isPopulating) return;
 
         isPopulating = true;
 
@@ -325,12 +302,12 @@ public class PaintingTransformEditPopup : MonoBehaviour
 
         newPosition = position;
         newRotation = rotation;
-        hasChanges = true;
+        hasChanges  = true;
     }
 
-    #endregion
-
-    #region Button Callbacks
+    // ════════════════════════════════════════════════
+    // BUTTON CALLBACKS
+    // ════════════════════════════════════════════════
 
     private void OnSaveClicked()
     {
@@ -340,59 +317,51 @@ public class PaintingTransformEditPopup : MonoBehaviour
             return;
         }
 
-        if (showDebug)
-            Debug.Log($"[PaintingTransformEditPopup] Saving transform for painting {currentPaintingId}");
-
         UpdateStatus("Đang lưu...", Color.yellow);
 
-        //  Update position object
         if (currentPaintingData.position == null)
-        {
             currentPaintingData.position = new Position();
-        }
+
         currentPaintingData.position.x = newPosition.x;
         currentPaintingData.position.y = newPosition.y;
         currentPaintingData.position.z = newPosition.z;
 
-        //  Update rotation object
         if (currentPaintingData.rotate == null)
-        {
             currentPaintingData.rotate = new Rotation();
-        }
+
         currentPaintingData.rotate.x = newRotation.x;
         currentPaintingData.rotate.y = newRotation.y;
         currentPaintingData.rotate.z = newRotation.z;
 
-        //  Update prefab data
-        if (targetPaintingPrefab != null)
-        {
-            targetPaintingPrefab.UpdateDataFromTransform();
-        }
+        targetPaintingPrefab?.UpdateDataFromTransform();
 
-        //  TODO: Call API to update
         APIManager.Instance.UpdatePaintingTransform(
             currentPaintingId,
             currentPaintingData.position,
             currentPaintingData.rotate,
             OnSaveSuccess,
             OnSaveError
-            );
-        OnSaveSuccess();
-        targetPaintingPrefab.onDisplayButton.Invoke(false);
+        );
+
+        if (showDebug)
+            Debug.Log($"[PaintingTransformEditPopup] Saving transform for ID: {currentPaintingId}");
     }
 
     private void OnSaveSuccess()
     {
         UpdateStatus("Đã lưu thành công!", Color.green);
 
-        if (showDebug)
-            Debug.Log("[PaintingTransformEditPopup] Transform saved successfully");
-
         originalPosition = newPosition;
         originalRotation = newRotation;
-        hasChanges = false;
+        hasChanges       = false;
+
+        // ✅ Invoke custom delegate — an toàn trên WebGL
+        targetPaintingPrefab?.onDisplayButton.Invoke(false);
 
         Invoke(nameof(Hide), 1f);
+
+        if (showDebug)
+            Debug.Log("[PaintingTransformEditPopup] Saved successfully");
     }
 
     private void OnSaveError(string error)
@@ -403,18 +372,17 @@ public class PaintingTransformEditPopup : MonoBehaviour
 
     private void OnCancelClicked()
     {
-        if (hasChanges)
+        if (hasChanges && targetPaintingPrefab != null)
         {
-            if (targetPaintingPrefab != null)
-            {
-                targetPaintingPrefab.transform.position = originalPosition;
-                targetPaintingPrefab.transform.eulerAngles = originalRotation;
-            }
+            targetPaintingPrefab.transform.position    = originalPosition;
+            targetPaintingPrefab.transform.eulerAngles = originalRotation;
 
             if (showDebug)
-                Debug.Log("[PaintingTransformEditPopup] Changes cancelled, restored original transform");
+                Debug.Log("[PaintingTransformEditPopup] Cancelled — restored original transform");
         }
-        targetPaintingPrefab.onDisplayButton.Invoke(false);
+
+        // ✅ Invoke custom delegate — an toàn trên WebGL
+        targetPaintingPrefab?.onDisplayButton.Invoke(false);
         Hide();
     }
 
@@ -422,7 +390,7 @@ public class PaintingTransformEditPopup : MonoBehaviour
     {
         if (targetPaintingPrefab != null)
         {
-            targetPaintingPrefab.transform.position = originalPosition;
+            targetPaintingPrefab.transform.position    = originalPosition;
             targetPaintingPrefab.transform.eulerAngles = originalRotation;
         }
 
@@ -432,21 +400,17 @@ public class PaintingTransformEditPopup : MonoBehaviour
         UpdateStatus("Đã reset về giá trị ban đầu", Color.white);
 
         if (showDebug)
-            Debug.Log("[PaintingTransformEditPopup] Reset to original transform");
+            Debug.Log("[PaintingTransformEditPopup] Reset to original");
     }
 
-    #endregion
-
-    #region Utility
+    // ════════════════════════════════════════════════
+    // UTILITY
+    // ════════════════════════════════════════════════
 
     private void UpdateStatus(string message, Color color)
     {
-        if (statusText != null)
-        {
-            statusText.text = message;
-            statusText.color = color;
-        }
+        if (statusText == null) return;
+        statusText.text  = message;
+        statusText.color = color;
     }
-
-    #endregion
 }
