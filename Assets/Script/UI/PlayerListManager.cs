@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,12 +9,18 @@ public class PlayerListManager : MonoBehaviour
     [SerializeField] private Transform  container;
 
     [Header("Panel")]
-    [SerializeField] private GameObject playerListPanel;
-    [SerializeField] private Button     openPlayerListButton;
-    [SerializeField] private Button     closePlayerListButton;
+    [SerializeField] private RectTransform playerListPanel;
+    [SerializeField] private Button        openPlayerListButton;
+
+    [Header("Slide Settings")]
+    [SerializeField] private float slideDuration = 0.35f;
+    [SerializeField] private float slideOffset   = 1000f;
 
     private readonly Dictionary<string, GameObject> spawnedItems = new Dictionary<string, GameObject>();
-    private bool _openedByButton;
+
+    private Vector2 _panelOriginPos;
+    private bool    _isHidden      = false;   // false = panel đang ở vị trí ban đầu (hiển thị)
+    private Coroutine _slideCoroutine;
 
     // ════════════════════════════════════════════════
     // LIFECYCLE
@@ -21,17 +28,26 @@ public class PlayerListManager : MonoBehaviour
 
     private void Awake()
     {
-        if (openPlayerListButton  != null) openPlayerListButton.onClick.AddListener(OpenPanel);
-        if (closePlayerListButton != null) closePlayerListButton.onClick.AddListener(ClosePanel);
+        // Ghi nhớ vị trí gốc ngay trong Awake, trước cả OnEnable
+        if (playerListPanel != null)
+            _panelOriginPos = playerListPanel.anchoredPosition;
+
+        if (openPlayerListButton != null)
+            openPlayerListButton.onClick.AddListener(TogglePanel);
+
+        // Panel và nút luôn bật mặc định
+        if (playerListPanel != null)
+            playerListPanel.gameObject.SetActive(true);
+
+        if (openPlayerListButton != null)
+            openPlayerListButton.gameObject.SetActive(true);
+
+        // Đặt trạng thái icon nút về ban đầu (không flip)
+        SetButtonFlip(false);
     }
 
     private void OnEnable()
     {
-        // Ẩn panel khi vừa được bật (trừ khi chính OpenPanel đang gọi)
-        if (!_openedByButton && playerListPanel != null)
-            playerListPanel.SetActive(false);
-
-        // Xóa list cũ của session trước rồi đăng ký + populate lại
         ClearAll();
         SubscribeToNetwork();
         PopulateExistingPlayers();
@@ -45,7 +61,6 @@ public class PlayerListManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        // Safety: unsubscribe nếu object bị destroy mà chưa qua OnDisable
         UnsubscribeFromNetwork();
     }
 
@@ -56,7 +71,6 @@ public class PlayerListManager : MonoBehaviour
     private void SubscribeToNetwork()
     {
         if (NetworkManager.Instance == null) return;
-        // -= trước để chắc chắn không đăng ký trùng
         NetworkManager.Instance.OnPlayerJoined -= OnPlayerJoined;
         NetworkManager.Instance.OnPlayerLeft   -= OnPlayerLeft;
         NetworkManager.Instance.OnPlayerJoined += OnPlayerJoined;
@@ -134,16 +148,53 @@ public class PlayerListManager : MonoBehaviour
     // PANEL TOGGLE
     // ════════════════════════════════════════════════
 
-    private void OpenPanel()
+    private void TogglePanel()
     {
         if (playerListPanel == null) return;
-        _openedByButton = true;
-        playerListPanel.SetActive(true);
-        _openedByButton = false;
+
+        if (_isHidden)
+            SlidePanel(_panelOriginPos, flipButton: false);       // đưa về vị trí ban đầu
+        else
+            SlidePanel(_panelOriginPos + new Vector2(slideOffset, 0f), flipButton: true); // trượt sang phải
+
+        _isHidden = !_isHidden;
     }
 
-    private void ClosePanel()
+    private void SlidePanel(Vector2 target, bool flipButton)
     {
-        if (playerListPanel != null) playerListPanel.SetActive(false);
+        if (_slideCoroutine != null)
+            StopCoroutine(_slideCoroutine);
+
+        _slideCoroutine = StartCoroutine(SlideTo(target));
+        SetButtonFlip(flipButton);
+    }
+
+    private IEnumerator SlideTo(Vector2 target)
+    {
+        Vector2 start   = playerListPanel.anchoredPosition;
+        float   elapsed = 0f;
+
+        while (elapsed < slideDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t  = Mathf.Clamp01(elapsed / slideDuration);
+            float e  = EaseInOut(t);
+            playerListPanel.anchoredPosition = Vector2.LerpUnclamped(start, target, e);
+            yield return null;
+        }
+
+        playerListPanel.anchoredPosition = target;
+    }
+
+    // Ease in-out cubic
+    private static float EaseInOut(float t)
+    {
+        return t < 0.5f ? 4f * t * t * t : 1f - Mathf.Pow(-2f * t + 2f, 3f) / 2f;
+    }
+
+    private void SetButtonFlip(bool flipped)
+    {
+        if (openPlayerListButton == null) return;
+        openPlayerListButton.transform.localEulerAngles = flipped ? new Vector3(0f, 0f, 90f) : new Vector3(0f, 0f, -90f);
     }
 }

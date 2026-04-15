@@ -205,6 +205,8 @@ public class PanelListItemVisitor : MonoBehaviour
         if (isChatVisible) return;
 
         SetOpenChatBtnVisible(false);
+        SetSwapViewBtnVisible(false);
+        SetDisplayListItemBtnVisible(false);
         isChatVisible = true;
         AnimateTo(chatPanelRT, chatPanelShowPosition);
 
@@ -218,6 +220,8 @@ public class PanelListItemVisitor : MonoBehaviour
         isChatVisible = false;
         AnimateTo(chatPanelRT, chatPanelHidePosition);
         SetOpenChatBtnVisible(true);
+        SetSwapViewBtnVisible(true);
+        SetDisplayListItemBtnVisible(true);
 
         if (showDebug) Debug.Log("[PanelListItemVisitor] Chat → HIDE");
     }

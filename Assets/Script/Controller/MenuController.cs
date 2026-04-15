@@ -52,6 +52,9 @@ public class MenuController : MonoBehaviour
         if (Instance == null) Instance = this;
         else { Destroy(gameObject); return; }
 
+        // Đảm bảo SendMessage('MenuController', ...) từ index.html tìm đúng object
+        gameObject.name = "MenuController";
+
         if (view == null) view = GetComponent<MenuView>();
         if (view == null) { Debug.LogError("[MenuController] MenuView not found!"); enabled = false; return; }
 
@@ -78,11 +81,14 @@ public class MenuController : MonoBehaviour
 
         model.SetStatus("Chọn avatar và nhập tên để bắt đầu!");
         model.SetJoinButtonState(true);
-
-        // ✅ Mặc định chọn SinglePlayer để khớp với UI mặc định trong MenuView
         selectedMode = GameMode.SinglePlayer;
 
+#if UNITY_WEBGL
+        // WebGL: ẩn Unity menu, dùng HTML overlay thay thế
+        HideMenuPanel();
+#else
         ShowMenuPanel();
+#endif
     }
 
     private void OnDestroy()
@@ -442,6 +448,68 @@ public class MenuController : MonoBehaviour
 
         ShowMenuPanel();
         if (showDebug) Debug.Log("[MenuController] Menu reset ✅");
+    }
+
+    // ════════════════════════════════════════════════
+    // WEB MENU — gọi từ index.html qua SendMessage
+    // ════════════════════════════════════════════════
+
+    /// <summary>Gọi từ HTML khi ấn nút mũi tên phải chọn avatar.</summary>
+    public void ShowNextFromWeb(string _) => ShowNext();
+
+    /// <summary>Gọi từ HTML khi ấn nút mũi tên trái chọn avatar.</summary>
+    public void ShowPreviousFromWeb(string _) => ShowPrevious();
+
+    /// <summary>Nhảy trực tiếp tới avatar theo index — dùng khi Three.js đổi avatar.</summary>
+    public void ShowAvatarFromWeb(string indexStr)
+    {
+        if (int.TryParse(indexStr, out int idx))
+            ShowAvatarAtIndex(idx);
+    }
+
+    /// <summary>
+    /// Gọi từ HTML khi ấn "Bắt đầu".
+    /// jsonData: {"name":"PlayerName","isMultiplayer":false}
+    /// </summary>
+    public void StartFromWebMenu(string jsonData)
+    {
+        WebMenuData data;
+        try { data = JsonUtility.FromJson<WebMenuData>(jsonData); }
+        catch (System.Exception e)
+        {
+            Debug.LogError("[MenuController] StartFromWebMenu parse error: " + e.Message);
+            return;
+        }
+
+        string name = data.name != null ? data.name.Trim() : "";
+        if (string.IsNullOrEmpty(name)) name = "Player";
+
+        // Sync avatar index từ HTML
+        int idx = Mathf.Clamp(data.avatarIndex, 0,
+            previewInstances.Count > 0 ? previewInstances.Count - 1 : 0);
+        ShowAvatarAtIndex(idx);
+
+        model.PlayerName  = name;
+        model.AvatarIndex = currentIndex;
+        model.SavePlayerData();
+
+        selectedMode = data.isMultiplayer ? GameMode.MultiPlayer : GameMode.SinglePlayer;
+
+        if (showDebug)
+            Debug.Log($"[MenuController] StartFromWebMenu → name={name}, multi={data.isMultiplayer}, avatar={currentIndex}");
+
+        if (selectedMode == GameMode.MultiPlayer)
+            StartMultiPlayer();
+        else
+            StartSinglePlayer();
+    }
+
+    [System.Serializable]
+    private class WebMenuData
+    {
+        public string name;
+        public int    avatarIndex;
+        public bool   isMultiplayer;
     }
 
     // ════════════════════════════════════════════════

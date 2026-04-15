@@ -1,314 +1,472 @@
 <!DOCTYPE html>
-<html lang="en-us">
+<html lang="vi">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Art Gallery 3D - Vr360</title>
     <link rel="icon" type="image/png" href="TemplateData/logo.png">
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <style>
-        * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+        html, body { width:100%; height:100%; overflow:hidden; position:fixed; background:#111; font-family:'Segoe UI', Tahoma, 'Arial', sans-serif; }
+        #unity-container { position:absolute; inset:0; }
+        #unity-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; background:#111; }
+        #file-input { display:none; }
+        #overlay {
+            position:fixed; inset:0; z-index:9999;
+            background: linear-gradient(rgba(0,0,0,0.20), rgba(0,0,0,0.25)), url('TemplateData/bg.png') center/cover no-repeat;
+            transition: opacity 0.5s ease;
         }
-        
-        html, body { 
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            position: fixed;
-            background: #231F20;
-        }
-        
-        #unity-container { 
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-        
-        #unity-canvas { 
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: block;
-            background: #231F20;
-        }
-        
-        #file-input { 
-            display: none; 
-        }
-        
-        /* LOADING SCREEN */
-        #loading-cover {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            background: #231F20;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        /* Logo container */
-        #loading-logo {
-            width: 150px;
-            height: 150px;
-            margin-bottom: 30px;
-            animation: pulse 2s ease-in-out infinite;
-        }
-        
-        #loading-logo img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
-        }
-        
-        /* Loading text */
-        #loading-text {
-            color: white;
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        
-        /* Progress bar container */
-        #progress-container {
-            width: 300px;
-            height: 8px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-        
-        /* Progress bar fill */
-        #progress-bar {
-            width: 0%;
-            height: 100%;
-            background: linear-gradient(90deg, #00d2ff 0%, #3a47d5 100%);
-            border-radius: 10px;
-            transition: width 0.3s ease;
-            box-shadow: 0 0 10px rgba(0,210,255,0.5);
-        }
-        
-        /* Progress percentage */
-        #progress-text {
-            color: white;
-            font-size: 18px;
-            margin-top: 15px;
-            font-weight: 500;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        
-        /* Pulse animation */
-        @keyframes pulse {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.05);
-            }
-        }
-        
-        /* Loading spinner */
-        .spinner {
-            width: 40px;
-            height: 40px;
-            margin-top: 20px;
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        #hero { position:absolute; top:4%; left:20px; width:460px; pointer-events:none; }
+        .hero-title { font-family:'Arial Black','Impact',sans-serif; font-size:40px; font-style:italic; font-weight:900; color:#D4AF37; letter-spacing:2px; text-shadow:2px 3px 0 rgba(0,0,0,0.8), 0 0 28px rgba(212,175,55,0.30); margin-bottom:12px; }
+        .hero-sub { color:rgba(255,255,255,0.88); font-size:14px; line-height:1.75; text-shadow:0 1px 8px rgba(0,0,0,0.95); }
+        #menu-panel { position:absolute; left:20px; top:50%; transform:translateY(-46%); width:460px; background:rgba(12,8,3,0.88); border-radius:22px; padding:36px 32px 32px; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); box-shadow:0 8px 40px rgba(0,0,0,0.55); }
+        .panel-title { text-align:center; color:#D4AF37; font-size:20px; font-weight:800; letter-spacing:2px; text-transform:uppercase; margin-bottom:26px; }
+        .lbl { color:#D4AF37; font-size:16px; font-weight:600; margin-bottom:10px; }
+        #name-input { display:block; width:100%; padding:14px 22px; border-radius:32px; border:2px solid transparent; background:#fff; color:#111; font-size:16px; font-weight:600; outline:none; margin-bottom:20px; transition:border-color .2s; }
+        #name-input:focus { border-color:#D4AF37; }
+        #name-input::placeholder { color:#aaa; font-weight:400; }
+        #mode-wrap { display:flex; background:rgba(255,255,255,0.08); border-radius:32px; padding:4px; margin-bottom:22px; position:relative; }
+        #mode-bar { position:absolute; top:4px; bottom:4px; width:calc(50% - 4px); left:4px; background:rgba(255,255,255,0.90); border-radius:28px; transition:left .25s cubic-bezier(.4,0,.2,1); pointer-events:none; }
+        #mode-bar.multi { left:calc(50%); }
+        .mbtn { flex:1; padding:13px 0; border:none; background:transparent; font-size:15px; font-weight:700; border-radius:28px; cursor:pointer; position:relative; z-index:1; color:rgba(255,255,255,0.40); transition:color .2s; display:flex; align-items:center; justify-content:center; gap:5px; }
+        .mbtn.on { color:#D4AF37; }
+        #start-btn { display:flex; width:100%; padding:16px 0; border-radius:32px; border:none; font-size:18px; font-weight:700; align-items:center; justify-content:center; gap:8px; background:rgba(80,55,8,0.50); color:rgba(255,255,255,0.18); cursor:not-allowed; transition:background .4s,color .4s,box-shadow .3s,transform .1s; }
+        #start-btn.ready { background:linear-gradient(90deg,#B8860B 0%,#D4AF37 100%); color:#1a0d00; cursor:pointer; box-shadow:0 4px 22px rgba(212,175,55,0.45); }
+        #start-btn.ready:hover { filter:brightness(1.12); }
+        #start-btn.ready:active { transform:scale(0.97); }
+        #avatar-area { position:absolute; left:492px; right:0; top:0; bottom:0; display:flex; align-items:center; justify-content:center; }
+        .av-arrow { flex-shrink:0; width:48px; height:120px; border:none; background:rgba(0,175,240,0.90); color:#fff; font-size:24px; font-weight:900; cursor:pointer; z-index:10000; display:flex; align-items:center; justify-content:center; transition:background .2s, transform .1s; }
+        #prev-btn { border-radius:0 10px 10px 0; }
+        #next-btn { border-radius:10px 0 0 10px; }
+        .av-arrow:hover { background:rgba(0,145,210,1); }
+        .av-arrow:active { transform:scale(0.91); }
+        #three-wrap { flex:1; height:100%; position:relative; overflow:hidden; }
+        #three-canvas { position:absolute; inset:0; width:947px !important; height:945px !important; display:block; background:transparent; }
+        #model-loading { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:rgba(255,255,255,0.60); font-size:15px; display:none; pointer-events:none; z-index:2; text-align:center; }
+        #model-loading.show { display:block; }
+        .spinner { width:36px; height:36px; border:3px solid rgba(255,255,255,0.15); border-top-color:#D4AF37; border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 8px; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        #debug-panel { position:absolute; top:8px; left:8px; background:rgba(0,0,0,0.85); color:#0f0; font-size:10.5px; font-family:monospace; padding:8px 10px; border-radius:6px; max-width:400px; white-space:pre-wrap; z-index:10003; display:none; line-height:1.55; max-height:92%; overflow-y:auto; }
+        #av-dots { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); display:flex; gap:10px; z-index:10001; }
+        .dot { width:10px; height:10px; border-radius:50%; background:rgba(255,255,255,0.28); cursor:pointer; transition:background .2s,transform .2s; }
+        .dot.on { background:#D4AF37; transform:scale(1.35); }
+        #bottom-loader { position:fixed; bottom:0; left:0; right:0; height:5px; background:rgba(255,255,255,0.10); z-index:10002; }
+        #bottom-fill { height:100%; width:0%; background:linear-gradient(90deg,#B8860B,#D4AF37); transition:width .3s ease; }
     </style>
 </head>
 <body>
-    <div id="unity-container">
-        <canvas id="unity-canvas"></canvas>
-        
-        <!-- LOADING SCREEN -->
-        <div id="loading-cover">
-            <!-- Logo (đặt file logo.png cùng thư mục index.html) -->
-            <div id="loading-logo">
-                <img src="TemplateData/logo.png" alt="Logo" onerror="this.style.display='none'" />
-            </div>
-            
-            <!-- Loading text -->
-            <div id="loading-text">Loading...</div>
-            
-            <!-- Progress bar -->
-            <div id="progress-container">
-                <div id="progress-bar"></div>
-            </div>
-            
-            <!-- Progress percentage -->
-            <div id="progress-text"><span id="progress">0</span>%</div>
-            
-            <!-- Spinner -->
-            <div class="spinner"></div>
-        </div>
+<div id="unity-container"><canvas id="unity-canvas"></canvas></div>
+<div id="overlay">
+    <div id="hero">
+        <div class="hero-title">ART-GALLERY VR</div>
+        <p class="hero-sub">Chào mừng bạn đến với không gian triển lãm thực tế ảo.<br>Vui lòng thiết lập thông tin nhân vật để bắt đầu hành trình<br>tham quan buổi triển lãm nghệ thuật Art-Gallery VR !</p>
     </div>
-    
-    <!-- Hidden file input for image picker -->
-    <input type="file" id="file-input" accept="image/png,image/jpeg,image/jpg" />
-    
-    <script>
-        console.log('[WebGL] Template loaded');
+    <div id="menu-panel">
+        <div class="panel-title">Thông tin nhân vật</div>
+        <div class="lbl">Tên hiển thị :</div>
+        <input type="text" id="name-input" placeholder="Nhập tên của bạn..." maxlength="20" autocomplete="off" />
+        <div class="lbl">Chế độ trải nghiệm :</div>
+        <div id="mode-wrap">
+            <div id="mode-bar"></div>
+            <button class="mbtn on" id="single-btn" onclick="setMode('single')">👤 Single</button>
+            <button class="mbtn" id="multi-btn" onclick="setMode('multi')">👥 Multiplayer</button>
+        </div>
+        <button id="start-btn" onclick="onStart()">Bắt đầu ❯</button>
+    </div>
+    <div id="avatar-area">
+        <button class="av-arrow" id="prev-btn" onclick="prevAvatar()">❮</button>
+        <div id="three-wrap">
+            <canvas id="three-canvas"></canvas>
+            <div id="model-loading"><div class="spinner"></div>Đang tải mô hình...</div>
+            <div id="av-dots"></div>
+            <div id="debug-panel"></div>
+        </div>
+        <button class="av-arrow" id="next-btn" onclick="nextAvatar()">❯</button>
+    </div>
+</div>
+<div id="bottom-loader"><div id="bottom-fill"></div></div>
+<input type="file" id="file-input" accept="image/png,image/jpeg,image/jpg" />
 
-        // ─────────────────────────────────────────────────────────────────
-        // ADMIN MODE — check từ server, không cần sửa tay
-        // ─────────────────────────────────────────────────────────────────
-        var CHECK_AUTH_URL = 'https://projects-admin.vr360.com.vn/api/phongtranh/check-auth';
-        // ─────────────────────────────────────────────────────────────────
+<script>
+var AVATAR_COUNT   = 3;
+var AVATAR_PATH    = 'TemplateData/avatars/';
+var CHECK_AUTH_URL = 'https://projects-admin.vr360.com.vn/api/phongtranh/check-auth';
 
-        var unityInstance = null;
-        var fileInput = document.getElementById('file-input');
-        var loadingCover = document.getElementById('loading-cover');
-        var progressElement = document.getElementById('progress');
-        var progressBar = document.getElementById('progress-bar');
-        
-        if (!fileInput) {
-            console.error('[WebGL] CRITICAL ERROR: file-input not found!');
-        } else {
-            console.log('[WebGL] ✓ file-input found');
+var IS_DEBUG = location.search.indexOf('debug') !== -1;
+if (IS_DEBUG) document.getElementById('debug-panel').style.display = 'block';
+function dbg(msg) {
+    console.log('[AVT] ' + msg);
+    if (!IS_DEBUG) return;
+    var p = document.getElementById('debug-panel');
+    p.textContent += msg + '\n';
+    var lines = p.textContent.split('\n');
+    if (lines.length > 80) p.textContent = lines.slice(lines.length - 80).join('\n');
+    p.scrollTop = p.scrollHeight;
+}
+
+function blockForInput(e) {
+    var el = document.activeElement;
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) { e.stopImmediatePropagation(); e.stopPropagation(); }
+}
+window.addEventListener('keydown',  blockForInput, true);
+window.addEventListener('keypress', blockForInput, true);
+window.addEventListener('keyup',    blockForInput, true);
+
+var nameInput = document.getElementById('name-input');
+nameInput.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+nameInput.addEventListener('click', function() { this.focus(); });
+
+var unityInstance = null, unityReady = false, selectedMode = 'single';
+var avatarIndex = 0, loadingAvatar = false;
+var overlay    = document.getElementById('overlay');
+var bottomFill = document.getElementById('bottom-fill');
+var startBtn   = document.getElementById('start-btn');
+var modelLoad  = document.getElementById('model-loading');
+
+function checkReady() { startBtn.classList.toggle('ready', unityReady && nameInput.value.trim().length > 0); }
+nameInput.addEventListener('input', checkReady);
+
+function setMode(m) {
+    selectedMode = m;
+    document.getElementById('mode-bar').classList.toggle('multi', m === 'multi');
+    document.getElementById('single-btn').classList.toggle('on', m === 'single');
+    document.getElementById('multi-btn').classList.toggle('on', m === 'multi');
+}
+
+function onStart() {
+    if (!startBtn.classList.contains('ready') || !unityInstance) return;
+    var name = nameInput.value.trim();
+    if (!name) { nameInput.focus(); return; }
+    startBtn.classList.remove('ready'); startBtn.textContent = 'Đang vào game...';
+    var payload = JSON.stringify({ name:name, avatarIndex:avatarIndex, isMultiplayer:selectedMode==='multi' });
+    try { unityInstance.SendMessage('MenuController', 'StartFromWebMenu', payload); }
+    catch(err) { console.error(err); startBtn.classList.add('ready'); startBtn.textContent = 'Bắt đầu ❯'; return; }
+    overlay.style.opacity = '0';
+    document.getElementById('bottom-loader').style.opacity = '0';
+    setTimeout(function() {
+        overlay.style.display = 'none';
+        document.getElementById('bottom-loader').style.display = 'none';
+        if (threeRenderer) threeRenderer.setAnimationLoop(null);
+    }, 500);
+}
+
+// ══════════════════════════════════════════════════
+// THREE.JS
+// ══════════════════════════════════════════════════
+var threeRenderer, threeScene, threeCamera, threeMixer, threeClock;
+var threeCanvas = document.getElementById('three-canvas');
+var threeWrap   = document.getElementById('three-wrap');
+var threePivot  = null;
+var threeModel  = null;
+
+// ─────────────────────────────────────────────────
+// BAKE rotation vào geometry — sau đó model.rotation = (0,0,0)
+// → Box3.setFromObject() luôn đúng
+// → threePivot.rotation.y += delta luôn xoay đúng trục Y
+// ─────────────────────────────────────────────────
+function bakeOrientToGeometry(model, rx, rz) {
+    var mat = new THREE.Matrix4();
+    if (rx !== 0) mat.multiply(new THREE.Matrix4().makeRotationX(rx));
+    if (rz !== 0) mat.multiply(new THREE.Matrix4().makeRotationZ(rz));
+    model.traverse(function(child) {
+        if (!child.isMesh && !child.isSkinnedMesh) return;
+        child.geometry.applyMatrix4(mat);
+    });
+    // Reset rotation về 0 — geometry đã mang đúng hướng
+    model.rotation.set(0, 0, 0);
+    model.updateMatrixWorld(true);
+    dbg('baked rx=' + rx.toFixed(2) + ' rz=' + rz.toFixed(2));
+}
+
+// ─────────────────────────────────────────────────
+// Tìm rotation tốt nhất rồi BAKE vào geometry
+// Tiêu chí:
+//   1. sizeY lớn nhất (model đứng thẳng)
+//   2. Trong đó chọn minY lớn nhất (không lộn ngược)
+// ─────────────────────────────────────────────────
+function smartOrientAndBake(model) {
+    var H = Math.PI / 2;
+    var candidates = [
+        [0, 0], [H, 0], [-H, 0], [0, H], [0, -H],
+        [Math.PI, 0], [0, Math.PI], [H, H]
+    ];
+
+    // Lưu rotation gốc
+    var origRX = model.rotation.x, origRZ = model.rotation.z;
+    var results = [];
+
+    for (var i = 0; i < candidates.length; i++) {
+        var rx = candidates[i][0], rz = candidates[i][1];
+        model.rotation.x = origRX + rx;
+        model.rotation.z = origRZ + rz;
+        model.updateMatrixWorld(true);
+        // Dùng Box3.setFromObject — đơn giản, đủ dùng cho bước chọn rotation
+        var box  = new THREE.Box3().setFromObject(model);
+        var size = box.getSize(new THREE.Vector3());
+        results.push({ rx:rx, rz:rz, sizeY:size.y, minY:box.min.y });
+        dbg('  rx='+rx.toFixed(2)+' rz='+rz.toFixed(2)+' Y='+size.y.toFixed(1)+' minY='+box.min.y.toFixed(1));
+    }
+
+    // Bước 1: sizeY lớn nhất
+    var maxSizeY = -1;
+    for (var j = 0; j < results.length; j++)
+        if (results[j].sizeY > maxSizeY) maxSizeY = results[j].sizeY;
+
+    // Bước 2: trong đó chọn minY lớn nhất
+    var bestRX = 0, bestRZ = 0, bestMinY = -Infinity;
+    var threshold = maxSizeY * 0.99;
+    for (var k = 0; k < results.length; k++) {
+        var r = results[k];
+        if (r.sizeY >= threshold && r.minY > bestMinY) {
+            bestMinY = r.minY; bestRX = r.rx; bestRZ = r.rz;
         }
-        
-        // Function được gọi từ Unity để mở file picker
-        window.OpenFilePicker = function() {
-            console.log('[WebGL] OpenFilePicker called from Unity');
-            if (fileInput) {
-                console.log('[WebGL] Clicking file input...');
-                fileInput.click();
-            } else {
-                console.error('[WebGL] file-input is null!');
+    }
+    dbg('→ BEST rx='+bestRX.toFixed(2)+' rz='+bestRZ.toFixed(2)+' minY='+bestMinY.toFixed(1));
+
+    // Reset về gốc rồi BAKE rotation tốt nhất vào geometry
+    model.rotation.x = origRX; model.rotation.z = origRZ;
+    model.updateMatrixWorld(true);
+    bakeOrientToGeometry(model, bestRX, bestRZ);
+}
+
+// ─────────────────────────────────────────────────
+// NORMALIZE + FIT CAMERA — giữ nguyên logic scale gốc
+// ─────────────────────────────────────────────────
+function normalizeAndFit(model, path) {
+    dbg('══ ' + path + ' ══');
+
+    // Bbox gốc — dùng Box3.setFromObject (geometry đã bake = luôn đúng)
+    var s0 = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
+    dbg('raw: ' + s0.x.toFixed(2) + ', ' + s0.y.toFixed(2) + ', ' + s0.z.toFixed(2));
+
+    // Orient nếu Y không phải trục lớn nhất
+    if (s0.y < s0.x * 0.8 || s0.y < s0.z * 0.8) {
+        dbg('orient needed');
+        smartOrientAndBake(model);
+    } else {
+        dbg('orient OK');
+    }
+
+    // Bbox sau orient
+    var box  = new THREE.Box3().setFromObject(model);
+    var size = box.getSize(new THREE.Vector3());
+    var ctr  = box.getCenter(new THREE.Vector3());
+    dbg('oriented: ' + size.x.toFixed(3) + ', ' + size.y.toFixed(3) + ', ' + size.z.toFixed(3) + ' | minY=' + box.min.y.toFixed(2));
+
+    // Scale về chiều cao 1.8 — giữ nguyên logic gốc
+    var TARGET_H = 1.8;
+    if (size.y > 0.001) {
+        model.scale.multiplyScalar(TARGET_H / size.y);
+        box  = new THREE.Box3().setFromObject(model);
+        size = box.getSize(new THREE.Vector3());
+        ctr  = box.getCenter(new THREE.Vector3());
+        dbg('scaled: ' + size.x.toFixed(3) + ', ' + size.y.toFixed(3) + ', ' + size.z.toFixed(3));
+    }
+
+    // Căn giữa — chân chạm Y=0
+    model.position.x -= ctr.x;
+    model.position.z -= ctr.z;
+    model.position.y -= box.min.y;
+
+    // Bbox cuối
+    box  = new THREE.Box3().setFromObject(model);
+    size = box.getSize(new THREE.Vector3());
+    ctr  = box.getCenter(new THREE.Vector3());
+    dbg('final: minY=' + box.min.y.toFixed(3) + ' maxY=' + box.max.y.toFixed(3) + ' ctrY=' + ctr.y.toFixed(3));
+
+    // Fit camera
+    resizeThree();
+    var fovRad = threeCamera.fov * Math.PI / 180;
+    var aspect = threeCamera.aspect;
+    var distV  = (size.y * 0.5) / Math.tan(fovRad * 0.5);
+    var fovH   = 2 * Math.atan(Math.tan(fovRad * 0.5) * aspect);
+    var distH  = (Math.max(size.x, size.z) * 0.5) / Math.tan(fovH * 0.5);
+    var dist   = Math.max(distV, distH) * 1.08;
+    threeCamera.position.set(0, ctr.y, dist);
+    threeCamera.near = dist * 0.001;
+    threeCamera.far  = dist * 50;
+    threeCamera.lookAt(0, ctr.y, 0);
+    threeCamera.updateProjectionMatrix();
+    dbg('cam: dist=' + dist.toFixed(2) + ' lookAtY=' + ctr.y.toFixed(2) + ' aspect=' + aspect.toFixed(2));
+}
+
+function initThree() {
+    threeScene  = new THREE.Scene();
+    threeScene.background = null;
+    threeCamera = new THREE.PerspectiveCamera(38, 1, 0.01, 1000);
+    threeClock  = new THREE.Clock();
+
+    threeRenderer = new THREE.WebGLRenderer({ canvas:threeCanvas, alpha:true, antialias:true, powerPreference:'high-performance' });
+    threeRenderer.setClearColor(0x000000, 0);
+    threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    threeRenderer.outputEncoding      = THREE.sRGBEncoding;
+    threeRenderer.toneMapping         = THREE.ACESFilmicToneMapping;
+    threeRenderer.toneMappingExposure = 1.4;
+    threeRenderer.shadowMap.enabled   = true;
+
+    threeScene.add(new THREE.AmbientLight(0xffffff, 1.1));
+    var key  = new THREE.DirectionalLight(0xfff5e0, 2.5); key.position.set(2,5,4); key.castShadow=true; threeScene.add(key);
+    var fill = new THREE.DirectionalLight(0xc8deff, 0.8); fill.position.set(-3,2,-2); threeScene.add(fill);
+    var rim  = new THREE.DirectionalLight(0xffffff, 0.6); rim.position.set(0,-1,-4);  threeScene.add(rim);
+
+    threeRenderer.setAnimationLoop(function() {
+        var delta = threeClock.getDelta();
+        if (threeMixer) threeMixer.update(delta);
+        if (threePivot) threePivot.rotation.y += 0.006;
+        threeRenderer.render(threeScene, threeCamera);
+    });
+
+    if (window.ResizeObserver) new ResizeObserver(function() { resizeThree(); }).observe(threeWrap);
+    window.addEventListener('resize', resizeThree);
+    requestAnimationFrame(function() { requestAnimationFrame(function() { resizeThree(); loadGLB(0); }); });
+}
+
+function resizeThree() {
+    if (!threeRenderer || !threeWrap) return;
+    var w = threeWrap.clientWidth, h = threeWrap.clientHeight;
+    if (w < 1 || h < 1) return;
+    threeRenderer.setSize(w, h, false);
+    threeCamera.aspect = w / h;
+    threeCamera.updateProjectionMatrix();
+}
+
+function loadGLB(index) {
+    var path = AVATAR_PATH + index + '.glb';
+    if (loadingAvatar) return;
+    loadingAvatar = true;
+    modelLoad.classList.add('show');
+
+    if (threePivot) {
+        threeScene.remove(threePivot);
+        if (threeModel) {
+            threeModel.traverse(function(child) {
+                if (!child.isMesh && !child.isSkinnedMesh) return;
+                if (child.geometry) child.geometry.dispose();
+                var mats = Array.isArray(child.material) ? child.material : [child.material];
+                mats.forEach(function(m) { if (m) m.dispose(); });
+            });
+        }
+        threePivot = null; threeModel = null;
+    }
+    if (threeMixer) { threeMixer.stopAllAction(); threeMixer = null; }
+
+    threeCamera.position.set(0,1,5); threeCamera.near=0.01; threeCamera.far=1000;
+    threeCamera.lookAt(0,1,0); threeCamera.updateProjectionMatrix();
+
+    var loader = new THREE.GLTFLoader();
+    loader.load(path,
+        function(gltf) {
+            threeModel = gltf.scene;
+
+            threeModel.traverse(function(child) {
+                if (!child.isMesh && !child.isSkinnedMesh) return;
+                var mats = Array.isArray(child.material) ? child.material : [child.material];
+                mats.forEach(function(m) {
+                    m.side=THREE.FrontSide; m.depthWrite=true; m.needsUpdate=true;
+                    if (m.map)         { m.map.encoding=THREE.sRGBEncoding; m.map.needsUpdate=true; }
+                    if (m.emissiveMap) { m.emissiveMap.encoding=THREE.sRGBEncoding; }
+                });
+                child.castShadow=true; child.receiveShadow=true;
+            });
+
+            dbg('animations: ' + gltf.animations.length);
+            gltf.animations.forEach(function(a,i) { dbg('  ['+i+'] "'+a.name+'" dur='+a.duration.toFixed(1)+'s'); });
+            if (gltf.animations.length > 0) {
+                threeMixer = new THREE.AnimationMixer(threeModel);
+                var clip = null;
+                for (var ai = 0; ai < gltf.animations.length; ai++) {
+                    if (/idle/i.test(gltf.animations[ai].name)) { clip = gltf.animations[ai]; break; }
+                }
+                if (!clip) clip = gltf.animations[0];
+                var action = threeMixer.clipAction(clip);
+                action.reset(); action.setLoop(THREE.LoopRepeat, Infinity); action.play();
+                dbg('playing: "' + clip.name + '"');
             }
-        };
-        
-        // Xử lý khi user chọn file
-        if (fileInput) {
-            fileInput.addEventListener('change', function(e) {
-                var file = e.target.files[0];
-                if (!file) {
-                    console.log('[WebGL] No file selected');
-                    return;
-                }
-                
-                console.log('[WebGL] File selected:', file.name, file.size, 'bytes');
-                
-                // Kiểm tra kích thước (giới hạn 10MB)
-                if (file.size > 10 * 1024 * 1024) {
-                    alert('File quá lớn! Vui lòng chọn ảnh dưới 10MB');
-                    fileInput.value = '';
-                    return;
-                }
-                
-                var reader = new FileReader();
-                reader.onload = function(event) {
-                    var base64 = event.target.result;
-                    console.log('[WebGL] File loaded, base64 length:', base64.length);
-                    
-                    if (unityInstance) {
-                        try {
-                            // Tạo JSON object chứa metadata + base64 data
-                            var fileData = JSON.stringify({
-                                fileName: file.name,
-                                fileSize: file.size,
-                                base64Data: base64
-                            });
-                            
-                            console.log('[WebGL] Sending to Unity:', file.name, file.size, 'bytes');
-                            unityInstance.SendMessage('ImageEditPopup', 'OnWebGLFileSelected', fileData);
-                            console.log('[WebGL] ✓ Sent to Unity');
-                        } catch (err) {
-                            console.error('[WebGL] Error sending to Unity:', err);
-                        }
-                    } else {
-                        console.error('[WebGL] Unity instance not ready!');
-                    }
-                };
-                
-                reader.onerror = function(error) {
-                    console.error('[WebGL] FileReader error:', error);
-                };
-                
-                reader.readAsDataURL(file);
-                fileInput.value = ''; // Reset input
-            });
+
+            // Tạo pivot xoay Y — model là con của pivot
+            threePivot = new THREE.Group();
+            threePivot.add(threeModel);
+            threeScene.add(threePivot);
+
+            // Orient bằng BAKE vào geometry → Box3 luôn đúng sau đó
+            normalizeAndFit(threeModel, path);
+
+            loadingAvatar = false;
+            modelLoad.classList.remove('show');
+        },
+        undefined,
+        function(err) {
+            loadingAvatar = false; modelLoad.classList.remove('show');
+            dbg('ERROR: ' + (err.message || err));
         }
-        
-        // Unity WebGL config với template placeholders
-        var buildUrl = "Build";
-        var config = {
-            dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
-            frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
-            codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
-            streamingAssetsUrl: "StreamingAssets",
-            companyName: "{{{ COMPANY_NAME }}}",
-            productName: "{{{ PRODUCT_NAME }}}",
-            productVersion: "{{{ PRODUCT_VERSION }}}",
+    );
+}
+
+function buildDots() {
+    var c = document.getElementById('av-dots'); c.innerHTML = '';
+    for (var i = 0; i < AVATAR_COUNT; i++) {
+        (function(ii) {
+            var d = document.createElement('div');
+            d.className = 'dot' + (ii===0?' on':'');
+            d.onclick = function() { jumpAvatar(ii); };
+            c.appendChild(d);
+        })(i);
+    }
+}
+function updateDots() { document.querySelectorAll('.dot').forEach(function(d,i){ d.classList.toggle('on', i===avatarIndex); }); }
+function jumpAvatar(idx) {
+    if (idx===avatarIndex||loadingAvatar) return;
+    avatarIndex=idx; updateDots(); loadGLB(avatarIndex);
+    if (unityInstance) { try { unityInstance.SendMessage('MenuController','ShowAvatarFromWeb',String(avatarIndex)); } catch(e){} }
+}
+function prevAvatar() { jumpAvatar((avatarIndex-1+AVATAR_COUNT)%AVATAR_COUNT); }
+function nextAvatar() { jumpAvatar((avatarIndex+1)%AVATAR_COUNT); }
+
+buildDots(); initThree();
+
+window.OpenFilePicker = function() { var fi=document.getElementById('file-input'); if(fi) fi.click(); };
+(function() {
+    var fi = document.getElementById('file-input'); if (!fi) return;
+    fi.addEventListener('change', function(e) {
+        var file = e.target.files[0]; if (!file) return;
+        if (file.size > 10*1024*1024) { alert('File quá lớn! Dưới 10MB.'); fi.value=''; return; }
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            if (unityInstance) unityInstance.SendMessage('ImageEditPopup','OnWebGLFileSelected',
+                JSON.stringify({fileName:file.name,fileSize:file.size,base64Data:ev.target.result}));
         };
-        
-        // Load Unity loader script
-        var script = document.createElement("script");
-        script.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
-        script.onload = function() {
-            console.log('[WebGL] Loader script loaded');
-            createUnityInstance(document.querySelector("#unity-canvas"), config, function(progress) {
-                var percent = Math.round(progress * 100);
-                progressElement.innerText = percent;
-                progressBar.style.width = percent + '%';
-            }).then(function(instance) {
-                unityInstance = instance;
+        reader.readAsDataURL(file); fi.value='';
+    });
+})();
 
-                // Check auth từ server rồi mới gửi sang Unity
-                fetch(CHECK_AUTH_URL, { credentials: 'include' })
-                    .then(function(res) { return res.json(); })
-                    .then(function(json) {
-                        var isAdmin = json.data && json.data.logged_in === true;
-                        console.log('[WebGL] Auth check →', isAdmin ? 'Admin' : 'Visitor');
-                        unityInstance.SendMessage('AdminModeManager', 'SetAdminModeFromWeb', isAdmin.toString());
-                    })
-                    .catch(function(err) {
-                        console.warn('[WebGL] Auth check failed, defaulting to Visitor:', err);
-                        unityInstance.SendMessage('AdminModeManager', 'SetAdminModeFromWeb', 'false');
-                    });
-
-                // Fade out loading screen
-                loadingCover.style.transition = 'opacity 0.5s ease';
-                loadingCover.style.opacity = '0';
-
-                setTimeout(function() {
-                    loadingCover.style.display = 'none';
-                }, 500);
-
-                console.log('[WebGL] ✓ Unity loaded successfully');
-            }).catch(function(message) {
-                console.error('[WebGL] Unity load failed:', message);
-                alert('Failed to load Unity: ' + message);
-            });
-        };
-        script.onerror = function() {
-            console.error('[WebGL] Failed to load Unity loader script');
-        };
-        document.body.appendChild(script);
-    </script>
+var buildUrl = "Build";
+var config = {
+    dataUrl:buildUrl+"/{{{ DATA_FILENAME }}}", frameworkUrl:buildUrl+"/{{{ FRAMEWORK_FILENAME }}}",
+    codeUrl:buildUrl+"/{{{ CODE_FILENAME }}}", streamingAssetsUrl:"StreamingAssets",
+    companyName:"{{{ COMPANY_NAME }}}", productName:"{{{ PRODUCT_NAME }}}", productVersion:"{{{ PRODUCT_VERSION }}}",
+};
+var uScript = document.createElement('script');
+uScript.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
+uScript.onload = function() {
+    createUnityInstance(document.querySelector('#unity-canvas'), config, function(p) {
+        bottomFill.style.width = Math.round(p*100)+'%';
+    }).then(function(inst) {
+        unityInstance=inst; unityReady=true; console.log('[WebGL] Unity loaded ✓');
+        unityInstance.SendMessage('MenuController','ShowAvatarFromWeb',String(avatarIndex));
+        checkReady(); resizeThree();
+        fetch(CHECK_AUTH_URL,{credentials:'include'})
+            .then(function(r){return r.json();})
+            .then(function(j){
+                var admin=j.data&&j.data.logged_in===true;
+                unityInstance.SendMessage('AdminModeManager','SetAdminModeFromWeb',admin.toString());
+            })
+            .catch(function(){ unityInstance.SendMessage('AdminModeManager','SetAdminModeFromWeb','false'); });
+    }).catch(function(msg){ console.error('[WebGL] Load failed:',msg); });
+};
+uScript.onerror = function() { console.error('[WebGL] Loader script failed'); };
+document.body.appendChild(uScript);
+</script>
 </body>
 </html>
