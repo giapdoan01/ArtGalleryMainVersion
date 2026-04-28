@@ -27,30 +27,30 @@ public class PanelListItemVisitor : MonoBehaviour
     [SerializeField] private AnimationCurve easeCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
 
     [Header("displayListItemButton Positions")]
-    [SerializeField] private Vector3 displayListItemButtonShowPosition = Vector3.zero;
-    [SerializeField] private Vector3 displayListItemButtonHidePosition = new Vector3(-300, 0, 0);
+    [SerializeField] private Vector2 displayListItemButtonShowPosition = Vector2.zero;
+    [SerializeField] private Vector2 displayListItemButtonHidePosition = Vector2.zero;
 
     [Header("openChatButton Positions")]
-    [SerializeField] private Vector3 openChatButtonShowPosition = Vector3.zero;
-    [SerializeField] private Vector3 openChatButtonHidePosition = new Vector3(-300, 0, 0);
+    [SerializeField] private Vector2 openChatButtonShowPosition = Vector2.zero;
+    [SerializeField] private Vector2 openChatButtonHidePosition = Vector2.zero;
 
     [Header("ListItem Positions")]
-    [SerializeField] private Vector3 listItemShowPosition = Vector3.zero;
-    [SerializeField] private Vector3 listItemHidePosition = new Vector3(0, -400, 0);
+    [SerializeField] private Vector2 listItemShowPosition = Vector2.zero;
+    [SerializeField] private Vector2 listItemHidePosition = Vector2.zero;
 
     [Header("Chat Positions")]
-    [SerializeField] private Vector3 chatPanelShowPosition = new Vector3(-652, -347, 0);
-    [SerializeField] private Vector3 chatPanelHidePosition = new Vector3(-1253, -717, 0);
+    [SerializeField] private Vector2 chatPanelShowPosition = Vector2.zero;
+    [SerializeField] private Vector2 chatPanelHidePosition = Vector2.zero;
 
     [Header("Minimap Positions")]
-    [SerializeField] private Vector3 minimapPanelShowPosition   = Vector3.zero;
-    [SerializeField] private Vector3 minimapPanelHidePosition   = new Vector3(300, 0, 0);
-    [SerializeField] private Vector3 openMinimapBtnShowPosition = Vector3.zero;
-    [SerializeField] private Vector3 openMinimapBtnHidePosition = new Vector3(300, 0, 0);
+    [SerializeField] private Vector2 minimapPanelShowPosition   = Vector2.zero;
+    [SerializeField] private Vector2 minimapPanelHidePosition   = Vector2.zero;
+    [SerializeField] private Vector2 openMinimapBtnShowPosition = Vector2.zero;
+    [SerializeField] private Vector2 openMinimapBtnHidePosition = Vector2.zero;
 
     [Header("SwapView Button Positions")]
-    [SerializeField] private Vector3 swapViewButtonShowPosition = Vector3.zero;
-    [SerializeField] private Vector3 swapViewButtonHidePosition = new Vector3(-300, 0, 0);
+    [SerializeField] private Vector2 swapViewButtonShowPosition = Vector2.zero;
+    [SerializeField] private Vector2 swapViewButtonHidePosition = Vector2.zero;
 
     [Header("Panel Integration")]
     [SerializeField] private PaintingInfo paintingInfo;
@@ -430,28 +430,28 @@ public class PanelListItemVisitor : MonoBehaviour
     // ANIMATION
     // ═══════════════════════════════════════════════════════════════════
 
-    private void AnimateTo(RectTransform rt, Vector3 targetPos)
+    private void AnimateTo(RectTransform rt, Vector2 targetPos)
     {
         if (rt == null) return;
         StartCoroutine(AnimatePanel(rt, targetPos));
     }
 
-    private void SetPositionImmediate(RectTransform rt, Vector3 pos)
+    private void SetPositionImmediate(RectTransform rt, Vector2 pos)
     {
         if (rt != null) rt.anchoredPosition = pos;
     }
 
-    private IEnumerator AnimatePanel(RectTransform rt, Vector3 targetPos)
+    private IEnumerator AnimatePanel(RectTransform rt, Vector2 targetPos)
     {
         runningAnimations++;
-        Vector3 startPos = rt.anchoredPosition;
+        Vector2 startPos = rt.anchoredPosition;
         float elapsed    = 0f;
 
         while (elapsed < animationDuration)
         {
             elapsed            += Time.deltaTime;
             float t             = easeCurve.Evaluate(Mathf.Clamp01(elapsed / animationDuration));
-            rt.anchoredPosition = Vector3.Lerp(startPos, targetPos, t);
+            rt.anchoredPosition = Vector2.Lerp(startPos, targetPos, t);
             yield return null;
         }
 

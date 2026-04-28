@@ -57,7 +57,7 @@ public class MenuView : MonoBehaviour
     private void Awake()
     {
         ValidateComponents();
-        if (UIInPlay != null) MoveUIInPlayOffscreen();
+        if (UIInPlay != null) HideInGameUI();
 
         // ✅ Mặc định chọn SinglePlayer ngay từ đầu
         if (moveElement != null)
@@ -291,9 +291,8 @@ public class MenuView : MonoBehaviour
     {
         if (UIInPlay == null) return;
         UIInPlay.SetActive(true);
-        SetRectPos(UIInPlay, Vector2.zero);
+        SetUIInPlayRect(0f, 0f);
 
-        // Ẩn các UI chỉ dành cho multiplayer khi chơi single
         if (multiplayerOnlyUI != null)
         {
             foreach (var go in multiplayerOnlyUI)
@@ -304,10 +303,9 @@ public class MenuView : MonoBehaviour
     public void HideInGameUI()
     {
         if (UIInPlay == null) return;
-        SetRectPos(UIInPlay, new Vector2(-3000f, 0f));
+        SetUIInPlayRect(-3000f, 3000f);
 
-        // Deactivate multiplayer-only UI ở đây để OnDisable của các component
-        // (PlayerListManager, ...) tự dọn dẹp subscription và data cũ
+        // Deactivate multiplayer-only UI để OnDisable của các component tự dọn dẹp
         if (multiplayerOnlyUI != null)
         {
             foreach (var go in multiplayerOnlyUI)
@@ -331,15 +329,17 @@ public class MenuView : MonoBehaviour
     // HELPERS
     // ════════════════════════════════════════════════
 
-    private void MoveUIInPlayOffscreen() => SetRectPos(UIInPlay, new Vector2(-3000f, 0f));
-
-    private void SetRectPos(GameObject go, Vector2 pos)
+    // Left  = offsetMin.x
+    // Right = -offsetMax.x  (Unity đảo dấu với stretch anchor)
+    private void SetUIInPlayRect(float left, float right)
     {
-        RectTransform rt = go.GetComponent<RectTransform>();
+        RectTransform rt = UIInPlay.GetComponent<RectTransform>();
         if (rt == null) return;
-        rt.anchorMin = new Vector2(0.5f, 0.5f);
-        rt.anchorMax = new Vector2(0.5f, 0.5f);
-        rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = pos;
+        Vector2 min = rt.offsetMin;
+        Vector2 max = rt.offsetMax;
+        min.x = left;
+        max.x = -right;
+        rt.offsetMin = min;
+        rt.offsetMax = max;
     }
 }

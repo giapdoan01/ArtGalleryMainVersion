@@ -14,6 +14,9 @@ public class CameraFollow : MonoBehaviour
     [Header("Mouse Control")]
     [SerializeField] private float mouseSensitivity = 3f;
 
+    [Header("Arrow Key Rotation")]
+    [SerializeField] private float arrowRotateSpeed = 90f; // độ/giây
+
     [Header("Camera Mode")]
     [SerializeField] private bool  firstPersonMode         = false;
     [SerializeField] private float firstPersonHeightOffset = 1.6f;
@@ -114,6 +117,23 @@ public class CameraFollow : MonoBehaviour
 
             isPressing = false;
             isDragging = false;
+        }
+
+        // ── Arrow keys: xoay camera ───────────────────
+        float arrowH = (Input.GetKey(KeyCode.RightArrow) ? 1f : 0f) - (Input.GetKey(KeyCode.LeftArrow) ? 1f : 0f);
+        float arrowV = (Input.GetKey(KeyCode.UpArrow)    ? 1f : 0f) - (Input.GetKey(KeyCode.DownArrow) ? 1f : 0f);
+
+        if (Mathf.Abs(arrowH) > 0f)
+            currentYaw += arrowH * arrowRotateSpeed * Time.deltaTime;
+
+        if (Mathf.Abs(arrowV) > 0f)
+        {
+            currentPitch -= arrowV * arrowRotateSpeed * Time.deltaTime;
+            currentPitch = Mathf.Clamp(
+                currentPitch,
+                firstPersonMode ? -80f : -20f,
+                firstPersonMode ?  80f :  60f
+            );
         }
     }
 

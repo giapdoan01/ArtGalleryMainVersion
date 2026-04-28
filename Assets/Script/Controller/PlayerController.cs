@@ -210,11 +210,11 @@ public class PlayerController : MonoBehaviour
         if (isCleanClick)
             TrySetMoveTarget();
 
-        // WASD vẫn cancel click-to-move như cũ
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
-        if (Mathf.Abs(h) > 0.1f || Mathf.Abs(v) > 0.1f)
-            if (playerModel.IsMovingToTarget) playerModel.StopMovingToTarget();
+        // WASD cancel click-to-move
+        if ((Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A) ||
+             Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D)) &&
+            playerModel.IsMovingToTarget)
+            playerModel.StopMovingToTarget();
     }
 
     private void TrySetMoveTarget()
@@ -264,8 +264,9 @@ public class PlayerController : MonoBehaviour
 
     private void HandleMovement()
     {
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
+        // Chỉ đọc WASD, không dùng arrow keys
+        float h = (Input.GetKey(KeyCode.D) ? 1f : 0f) - (Input.GetKey(KeyCode.A) ? 1f : 0f);
+        float v = (Input.GetKey(KeyCode.W) ? 1f : 0f) - (Input.GetKey(KeyCode.S) ? 1f : 0f);
         bool hasInput = Mathf.Abs(h) > 0.1f || Mathf.Abs(v) > 0.1f;
 
         if (hasInput) MoveWithWASD(h, v);
