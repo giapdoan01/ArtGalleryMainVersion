@@ -108,9 +108,9 @@ public class PaintingClickManager : MonoBehaviour
             return;
         }
 
-        // ✅ Không raycast lại — tin tưởng painting đã được ghi nhận lúc MouseDown
+        //  Không raycast lại — tin tưởng painting đã được ghi nhận lúc MouseDown
         // (tránh trường hợp chuột lệch nhẹ khi nhả làm miss raycast)
-        if (showDebug) Debug.Log($"[ClickManager] ✅ Fire click → {wasPainting.name}");
+        if (showDebug) Debug.Log($"[ClickManager]  Fire click → {wasPainting.name}");
         wasPainting.OnInfoColliderClicked();
     }
 

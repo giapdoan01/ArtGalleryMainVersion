@@ -59,7 +59,7 @@ public class MenuView : MonoBehaviour
         ValidateComponents();
         if (UIInPlay != null) HideInGameUI();
 
-        // ✅ Mặc định chọn SinglePlayer ngay từ đầu
+        //  Mặc định chọn SinglePlayer ngay từ đầu
         if (moveElement != null)
         {
             Vector2 pos = moveElement.anchoredPosition;
@@ -68,10 +68,10 @@ public class MenuView : MonoBehaviour
             targetPosX = posXSinglePlayer;
         }
 
-        // ✅ Hiển thị label/icon theo mode mặc định (SinglePlayer)
+        //  Hiển thị label/icon theo mode mặc định (SinglePlayer)
         UpdateModeIndicators(isMulti: false);
 
-        // ✅ Start button hiện sẵn (vì đã có mode mặc định)
+        //  Start button hiện sẵn (vì đã có mode mặc định)
         if (startButton != null) startButton.gameObject.SetActive(true);
     }
 
@@ -259,13 +259,13 @@ public class MenuView : MonoBehaviour
         if (!string.IsNullOrEmpty(playerName))
             SetPlayerName(playerName);
 
-        // ✅ Reset về SinglePlayer mặc định + hiện Start button
+        //  Reset về SinglePlayer mặc định + hiện Start button
         ShowStartButton(true);                   // ← đổi false → true
         SnapMoveElement(posXSinglePlayer);
         UpdateModeIndicators(isMulti: false);
 
         HideInGameUI();
-        Debug.Log("[MenuView] View reset ✅");
+        Debug.Log("[MenuView] View reset ");
     }
 
     // ════════════════════════════════════════════════

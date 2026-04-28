@@ -232,12 +232,12 @@ public class CombinedCursorManager : MonoBehaviour
             }
         }
 
-        // ✅ ĐÂY LÀ NƠI DUY NHẤT QUYẾT ĐỊNH Cursor.visible
+        //  ĐÂY LÀ NƠI DUY NHẤT QUYẾT ĐỊNH Cursor.visible
         ApplyCursorState();
     }
 
     /// <summary>
-    /// ✅ Hàm duy nhất quyết định Cursor.visible và custom cursor
+    ///  Hàm duy nhất quyết định Cursor.visible và custom cursor
     /// Chạy trong LateUpdate → luôn là quyết định CUỐI CÙNG trong frame
     /// </summary>
     private void ApplyCursorState()
@@ -393,7 +393,7 @@ public class CombinedCursorManager : MonoBehaviour
 
     #region Public API
 
-    // ✅ IsManagingCursor = đang hiện custom cursor (Clickable state)
+    //  IsManagingCursor = đang hiện custom cursor (Clickable state)
     public bool IsManagingCursor => currentState == CursorState.Clickable;
 
     public bool IsPointerOverAnyUIElement()

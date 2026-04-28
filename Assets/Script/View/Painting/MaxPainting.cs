@@ -244,7 +244,7 @@ public class MaxPainting : MonoBehaviour
 
         imageRect.sizeDelta = new Vector2(finalW, finalH);
 
-        // ✅ Ghi nhớ min zoom = kích thước vừa fit xong
+        //  Ghi nhớ min zoom = kích thước vừa fit xong
         minZoomHeight = finalH;
         currentHeight = finalH;
         UpdateZoomButtons();

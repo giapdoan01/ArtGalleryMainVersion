@@ -35,7 +35,7 @@ public class PreviewModel3D : MonoBehaviour
         if (renderTextureDisplay != null && renderTexture != null)
             renderTextureDisplay.texture = renderTexture;
 
-        // ✅ Đảm bảo RawImage block raycast — không cho event xuyên xuống closeButton
+        //  Đảm bảo RawImage block raycast — không cho event xuyên xuống closeButton
         if (renderTextureDisplay != null)
         {
             renderTextureDisplay.raycastTarget = true;
@@ -82,7 +82,7 @@ public class PreviewModel3D : MonoBehaviour
         if (previewModel3DPanel != null)
             previewModel3DPanel.SetActive(false);
 
-        // ✅ Restore layer của target về Default khi đóng
+        //  Restore layer của target về Default khi đóng
         if (model3DCamera != null)
             model3DCamera.ClearTarget();
 

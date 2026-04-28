@@ -91,7 +91,7 @@ public class NetworkManager : MonoBehaviour
     {
         client = new ColyseusClient(serverUrl);
 
-        // ✅ Đọc avatarIndex từ property (đã set trước khi gọi Connect)
+        //  Đọc avatarIndex từ property (đã set trước khi gọi Connect)
         int avatarIndex = AvatarIndex;
         if (avatarIndex <= 0)
             avatarIndex = PlayerPrefs.GetInt("AvatarIndex", 0);
@@ -101,7 +101,7 @@ public class NetworkManager : MonoBehaviour
         var options = new Dictionary<string, object>
         {
             { "username",    PlayerName  },
-            { "avatarIndex", avatarIndex }   // ✅ Gửi index thay vì URL
+            { "avatarIndex", avatarIndex }   //  Gửi index thay vì URL
         };
 
         Task<ColyseusRoom<GalleryState>> connectTask =
@@ -150,7 +150,7 @@ public class NetworkManager : MonoBehaviour
 
             state.players.ForEach((sessionId, player) =>
             {
-                // ✅ Bỏ qua local player — không override vị trí do chính mình điều khiển
+                //  Bỏ qua local player — không override vị trí do chính mình điều khiển
                 if (sessionId.Equals(room.SessionId)) return;
 
                 Vector3 position = new Vector3(player.x, player.y, player.z);
@@ -204,7 +204,7 @@ public class NetworkManager : MonoBehaviour
                 }
                 else
                 {
-                    // ✅ Chỉ update remote players
+                    //  Chỉ update remote players
                     if (!sessionId.Equals(room.SessionId))
                     {
                         Vector3 position = new Vector3(player.x, player.y, player.z);

@@ -170,10 +170,10 @@ public class Model3DCamera : MonoBehaviour
         Vector3    offset        = rotation * new Vector3(0f, 0f, -distance);
         Vector3    desiredPos    = targetModel.position + offset;
 
-        // ✅ Lerp position → xoay/zoom mượt
+        //  Lerp position → xoay/zoom mượt
         transform.position = Vector3.Lerp(transform.position, desiredPos, smoothSpeed * Time.deltaTime);
 
-        // ✅ LookAt thẳng → luôn focus vào target, không bao giờ lệch
+        //  LookAt thẳng → luôn focus vào target, không bao giờ lệch
         transform.LookAt(targetModel.position);
     }
 

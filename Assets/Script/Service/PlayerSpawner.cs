@@ -215,7 +215,7 @@ public class PlayerSpawner : MonoBehaviour
 
         players[sessionId] = playerObj;
 
-        // ✅ Attach MiniCamera vào local player (cả lần đầu lẫn sau khi re-join)
+        //  Attach MiniCamera vào local player (cả lần đầu lẫn sau khi re-join)
         if (isLocal) AttachFollowMapCamera(playerObj);
 
         if (isLocal && PlayerTeleportManager.Instance != null)
@@ -261,7 +261,7 @@ public class PlayerSpawner : MonoBehaviour
 
         players[LOCAL_SINGLE_ID] = playerObj;
 
-        // ✅ Attach MiniCamera (cả lần đầu lẫn sau khi re-join single mode)
+        //  Attach MiniCamera (cả lần đầu lẫn sau khi re-join single mode)
         AttachFollowMapCamera(playerObj);
 
         if (PlayerTeleportManager.Instance != null)
@@ -271,7 +271,7 @@ public class PlayerSpawner : MonoBehaviour
             if (showDebug) Debug.Log("[PlayerSpawner] Registered single player with TeleportManager");
         }
 
-        if (showDebug) Debug.Log("[PlayerSpawner] Single player spawned successfully ✅");
+        if (showDebug) Debug.Log("[PlayerSpawner] Single player spawned successfully ");
     }
 
     // ═══════════════════════════════════════════════
@@ -292,7 +292,7 @@ public class PlayerSpawner : MonoBehaviour
 
         followMapCamera.transform.SetParent(localPlayerObj.transform, false);
 
-        if (showDebug) Debug.Log($"[PlayerSpawner] FollowMapCamera attached to {localPlayerObj.name} ✅");
+        if (showDebug) Debug.Log($"[PlayerSpawner] FollowMapCamera attached to {localPlayerObj.name} ");
     }
 
     // ═══════════════════════════════════════════════
@@ -312,7 +312,7 @@ public class PlayerSpawner : MonoBehaviour
         }
         players.Clear();
         nextSpawnIndex = 0;
-        if (showDebug) Debug.Log("[PlayerSpawner] ClearAllPlayers done ✅");
+        if (showDebug) Debug.Log("[PlayerSpawner] ClearAllPlayers done ");
     }
 
     // ═══════════════════════════════════════════════

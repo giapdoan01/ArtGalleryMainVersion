@@ -8,7 +8,7 @@ public class Player : Schema
     [Type(1, "string")]
     public string username = default(string);
 
-    // ✅ FIX: "number" trong Colyseus JS = float (System.Single) phía Unity
+    //  FIX: "number" trong Colyseus JS = float (System.Single) phía Unity
     //         KHÔNG được khai báo là int — sẽ crash khi decode
     //         Khi cần dùng làm array index: (int)player.avatarIndex
     [Type(2, "number")]

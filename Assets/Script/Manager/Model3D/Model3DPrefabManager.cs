@@ -301,19 +301,28 @@ public class Model3DPrefabManager : MonoBehaviour
 
         if (!string.IsNullOrEmpty(model3D.thumbnail_url))
         {
-            using (UnityEngine.Networking.UnityWebRequest request =
-                   UnityEngine.Networking.UnityWebRequestTexture.GetTexture(model3D.thumbnail_url))
+            if (TextureCache.Instance != null)
             {
-                request.timeout = 10;
-                yield return request.SendWebRequest();
+                bool done = false;
+                TextureCache.Instance.GetTexture(model3D.thumbnail_url, 10, (tex) =>
+                {
+                    thumbnail = tex;
+                    done      = true;
+                });
+                yield return new WaitUntil(() => done);
+            }
+            else
+            {
+                using (UnityEngine.Networking.UnityWebRequest request =
+                       UnityEngine.Networking.UnityWebRequestTexture.GetTexture(model3D.thumbnail_url))
+                {
+                    request.timeout = 10;
+                    yield return request.SendWebRequest();
 
-                if (request.result == UnityEngine.Networking.UnityWebRequest.Result.Success)
-                {
-                    thumbnail = UnityEngine.Networking.DownloadHandlerTexture.GetContent(request);
-                }
-                else
-                {
-                    Debug.LogError($"[Model3DPrefabManager] Failed to load thumbnail: {model3D.name}");
+                    if (request.result == UnityEngine.Networking.UnityWebRequest.Result.Success)
+                        thumbnail = UnityEngine.Networking.DownloadHandlerTexture.GetContent(request);
+                    else
+                        Debug.LogError($"[Model3DPrefabManager] Failed to load thumbnail: {model3D.name}");
                 }
             }
         }

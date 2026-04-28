@@ -66,7 +66,10 @@ public class PaintingPrefab : MonoBehaviour
     private Painting  paintingData;
     private Texture2D paintingTexture;
 
-    // ✅ Custom delegate — tránh Action<bool> gây invoke_viiii mismatch trên WebGL IL2CPP
+    // Material instance riêng của quad này — tạo 1 lần, tái dụng khi đổi texture
+    private Material quadMaterialInstance;
+
+    //  Custom delegate — tránh Action<bool> gây invoke_viiii mismatch trên WebGL IL2CPP
     public delegate void DisplayButtonHandler(bool show);
     public DisplayButtonHandler onDisplayButton;
 
@@ -208,6 +211,10 @@ public class PaintingPrefab : MonoBehaviour
 
         if (outlineMaterialInstance != null)
             Destroy(outlineMaterialInstance);
+
+        // Giải phóng GPU memory khi object bị Destroy thật (không phải trả về pool)
+        if (quadMaterialInstance != null)
+            Destroy(quadMaterialInstance);
     }
 
     // ════════════════════════════════════════════════
@@ -430,9 +437,14 @@ public class PaintingPrefab : MonoBehaviour
     private void ApplyTexture(Texture2D texture)
     {
         if (quadRenderer == null) return;
-        Material mat = new Material(quadRenderer.sharedMaterial);
-        mat.mainTexture = texture;
-        quadRenderer.material = mat;
+
+        // Tạo material instance 1 lần duy nhất cho object này.
+        // Những lần sau (khi object được tái dụng từ pool) chỉ đổi texture, không tạo material mới.
+        if (quadMaterialInstance == null)
+            quadMaterialInstance = new Material(quadRenderer.sharedMaterial);
+
+        quadMaterialInstance.mainTexture = texture;
+        quadRenderer.material = quadMaterialInstance;
     }
 
     private void SetupFrame(string frameType, Texture2D texture)
@@ -515,7 +527,7 @@ public class PaintingPrefab : MonoBehaviour
         if (PaintingTransformEditPopup.Instance != null)
         {
             PaintingTransformEditPopup.Instance.Show(paintingData.id, paintingData, this);
-            // ✅ Invoke qua custom delegate — không dùng Action<string>
+            //  Invoke qua custom delegate — không dùng Action<string>
             PaintingTransformEditPopup.Instance.onGizmoModeChanged.Invoke(gizmo.currentMode.ToString());
         }
     }
@@ -555,11 +567,13 @@ public class PaintingPrefab : MonoBehaviour
         }
     }
 
-    // ✅ Named method thay lambda — tránh closure gây invoke mismatch trên WebGL
+    //  Named method thay lambda — tránh closure gây invoke mismatch trên WebGL
     private void OnRemoveSuccess()
     {
-        NotifyGalleryItemRemoved(paintingData.id);
-        Destroy(gameObject);
+        int id = paintingData.id;
+        NotifyGalleryItemRemoved(id);
+        // Trả về pool thay vì Destroy — manager set inactive và reuse
+        PaintingPrefabManager.Instance?.ReturnToPool(id);
         PaintingPrefabManager.Instance?.ReloadAllPaintings();
     }
 

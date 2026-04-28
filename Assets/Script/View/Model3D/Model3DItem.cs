@@ -19,8 +19,8 @@ public class Model3DItem : MonoBehaviour
     [SerializeField] private float spawnHeightOffset = 0f;
     
     [Header("Rotation Settings")]
-    [SerializeField] private bool useModelOriginalRotation = true; // ✅ Dùng rotation gốc từ GLB
-    [SerializeField] private bool facePlayer = false; // ✅ Có quay Y về phía player không
+    [SerializeField] private bool useModelOriginalRotation = true; //  Dùng rotation gốc từ GLB
+    [SerializeField] private bool facePlayer = false; //  Có quay Y về phía player không
 
     [Header("Highlight Settings")]
     [SerializeField] private Color highlightColor = new Color(1f, 0.5f, 0f, 1f);
@@ -30,8 +30,8 @@ public class Model3DItem : MonoBehaviour
 
     public Model3D model3DData;
     private Texture2D modelTexture;
-    private Vector3 originalModelRotation; // ✅ Rotation gốc từ GLB
-    private bool hasLoadedRotation = false; // ✅ Flag check đã load rotation chưa
+    private Vector3 originalModelRotation; //  Rotation gốc từ GLB
+    private bool hasLoadedRotation = false; //  Flag check đã load rotation chưa
     private Model3DPrefab model3DPrefabInstance;
     private Model3DInfo model3DInfo;
     private bool isSubscribedToEvent = false;
@@ -159,14 +159,14 @@ public class Model3DItem : MonoBehaviour
             FindModel3DPrefabInScene();
         }
 
-        // ✅ LẤY ROTATION GỐC TỪ GLB (nếu model đã được spawn trước đó)
+        //  LẤY ROTATION GỐC TỪ GLB (nếu model đã được spawn trước đó)
         LoadOriginalRotationFromManager();
 
         if (showDebug)
             Debug.Log($"[Model3DItem] Setup complete: {model3D.name} (ID: {model3D.id}, is_used: {model3D.is_used})");
     }
 
-    // ✅ LẤY ROTATION GỐC TỪ Model3DPrefabManager
+    //  LẤY ROTATION GỐC TỪ Model3DPrefabManager
     private void LoadOriginalRotationFromManager()
     {
         if (Model3DPrefabManager.Instance == null)
@@ -177,7 +177,7 @@ public class Model3DItem : MonoBehaviour
             return;
         }
 
-        // ✅ Lấy rotation gốc từ manager
+        //  Lấy rotation gốc từ manager
         originalModelRotation = Model3DPrefabManager.Instance.GetOriginalRotation(model3DData.id);
         hasLoadedRotation = true;
 
@@ -211,7 +211,7 @@ public class Model3DItem : MonoBehaviour
         if (showDebug)
             Debug.Log($"[Model3DItem] Spawning model3D: {model3DData.name}");
 
-        // ✅ Reload rotation trước khi spawn (để chắc chắn có rotation mới nhất)
+        //  Reload rotation trước khi spawn (để chắc chắn có rotation mới nhất)
         if (!hasLoadedRotation)
         {
             LoadOriginalRotationFromManager();
@@ -221,7 +221,7 @@ public class Model3DItem : MonoBehaviour
         PatchModel3DData(position, rotation);
     }
 
-    // ✅ CALCULATE SPAWN TRANSFORM
+    //  CALCULATE SPAWN TRANSFORM
     private void CalculateSpawnTransform(out Position position, out Rotation rotation)
     {
         PlayerController player = FindObjectOfType<PlayerController>();
@@ -266,10 +266,10 @@ public class Model3DItem : MonoBehaviour
 
         if (useModelOriginalRotation)
         {
-            // ✅ DÙNG ROTATION GỐC TỪ GLB
+            //  DÙNG ROTATION GỐC TỪ GLB
             finalRotation = originalModelRotation;
 
-            // ✅ NẾU CẦN QUAY VỀ PHÍA PLAYER, CHỈ XOAY TRỤC Y
+            //  NẾU CẦN QUAY VỀ PHÍA PLAYER, CHỈ XOAY TRỤC Y
             if (facePlayer)
             {
                 Vector3 directionToPlayer = (referencePosition - spawnPos).normalized;
@@ -288,7 +288,7 @@ public class Model3DItem : MonoBehaviour
         }
         else
         {
-            // ✅ TÍNH TOÁN ROTATION ĐỂ QUAY VỀ PHÍA PLAYER
+            //  TÍNH TOÁN ROTATION ĐỂ QUAY VỀ PHÍA PLAYER
             Vector3 directionToPlayer = (referencePosition - spawnPos).normalized;
             Quaternion spawnRotation = Quaternion.LookRotation(directionToPlayer);
             finalRotation = spawnRotation.eulerAngles;

@@ -32,18 +32,7 @@ public class CameraFollow : MonoBehaviour
     private bool    isDragging        = false; // đã vượt ngưỡng → đang xoay camera
     private Vector2 pressStartPos;
     private Vector2 lastMousePosition;
-
-    /// <summary>
-    /// TRUE nếu chuột trái đang kéo để xoay camera.
-    /// PlayerController đọc cái này để quyết định có fire move hay không.
-    /// </summary>
     public bool IsDragging => isDragging;
-
-    /// <summary>
-    /// TRUE nếu vừa nhả chuột trái mà KHÔNG drag (= click thuần).
-    /// PlayerController đọc cái này để fire move.
-    /// Reset về false sau 1 frame.
-    /// </summary>
     public bool IsCleanClick { get; private set; } = false;
 
     // ═══════════════════════════════════════════════

@@ -468,7 +468,7 @@ public class Model3DPrefab : MonoBehaviour
             // ── Outline material ──────────────────────
             if (canSetupOutline)
             {
-                // ✅ Lấy materials hiện tại — dùng mr.materials (instance) thay vì sharedMaterials
+                //  Lấy materials hiện tại — dùng mr.materials (instance) thay vì sharedMaterials
                 Material[] currentMats = mr.materials;
 
                 if (showDebug)
@@ -517,7 +517,7 @@ public class Model3DPrefab : MonoBehaviour
             outlineReady      = true;
 
             if (showDebug)
-                Debug.Log($"[Model3DPrefab] ✅ Outline READY — {outlineMatInstances.Count} instance(s)");
+                Debug.Log($"[Model3DPrefab]  Outline READY — {outlineMatInstances.Count} instance(s)");
         }
         else if (canSetupOutline)
         {

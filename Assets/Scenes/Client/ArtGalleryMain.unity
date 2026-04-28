@@ -4261,8 +4261,11 @@ MonoBehaviour:
   paintingPrefab: {fileID: 8636943494168325019, guid: 3c7c86314b2464448bc2bf9a10c3d70d, type: 3}
   spawnDistance: 2
   delayBetweenSpawns: 0.1
+  initialPoolSize: 60
+  maxPoolSize: 100
   showDebug: 0
   spawnedCount: 0
+  poolCount: 0
   isLoading: 0
 --- !u!1 &478881640 stripped
 GameObject:
@@ -10107,6 +10110,54 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 3635040790494307660, guid: 3272d3b9fc764bf4b827e15111740588, type: 3}
   m_PrefabInstance: {fileID: 1141591538}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1142695311
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1142695313}
+  - component: {fileID: 1142695312}
+  m_Layer: 0
+  m_Name: TextureCacheManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1142695312
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1142695311}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81cd51ec02e268c4b8595b827391a3f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TextureCache
+  maxCacheSize: 100
+  showDebug: 0
+  cachedCount: 0
+  pendingCount: 0
+--- !u!4 &1142695313
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1142695311}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 450.63852, y: 142.14267, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1170781875
 GameObject:
   m_ObjectHideFlags: 0
@@ -15749,7 +15800,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1724930595
 RectTransform:
   m_ObjectHideFlags: 0
@@ -51148,6 +51199,7 @@ SceneRoots:
   - {fileID: 396076319}
   - {fileID: 1479332744}
   - {fileID: 69317793}
+  - {fileID: 1142695313}
   - {fileID: 1501714357}
   - {fileID: 2118009154}
   - {fileID: 657995273}

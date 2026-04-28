@@ -6,12 +6,12 @@ using System;
 /// </summary>
 public class MenuModel
 {
-    // ✅ Số lượng avatar prefab (phải khớp với mảng avatarPrefabs trong MenuController)
+    //  Số lượng avatar prefab (phải khớp với mảng avatarPrefabs trong MenuController)
     public const int AVATAR_COUNT = 4;
 
     // ─── Player Data ───────────────────────────────
     public string PlayerName  { get; set; }
-    public int    AvatarIndex { get; set; }   // ✅ Index của prefab được chọn
+    public int    AvatarIndex { get; set; }   //  Index của prefab được chọn
     public bool   IsReady     { get; set; }   // Avatar đã sẵn sàng (prefab không cần load async)
 
     public RuntimeAnimatorController AnimatorController { get; set; }
@@ -34,7 +34,7 @@ public class MenuModel
         // Clamp phòng trường hợp PlayerPrefs lưu index cũ vượt quá số prefab
         AvatarIndex = Mathf.Clamp(AvatarIndex, 0, AVATAR_COUNT - 1);
 
-        // ✅ Prefab luôn sẵn sàng ngay, không cần load async
+        //  Prefab luôn sẵn sàng ngay, không cần load async
         IsReady = true;
 
         Debug.Log($"[MenuModel] Init — Name: {PlayerName}, AvatarIndex: {AvatarIndex}");

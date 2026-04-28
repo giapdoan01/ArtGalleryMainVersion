@@ -8,7 +8,7 @@ public class PlayerView : MonoBehaviour
     [SerializeField] private TextMeshProUGUI nameTagText;
 
     [Header("Map Icon")]
-    [SerializeField] private Canvas mapIconCanvas;      // ✅ Canvas của MapIcon
+    [SerializeField] private Canvas mapIconCanvas;      //  Canvas của MapIcon
     [SerializeField] private Image  mapIconImage;
     [SerializeField] private Sprite iconLocalPlayer;
     [SerializeField] private Sprite iconRemotePlayer;
@@ -34,7 +34,7 @@ public class PlayerView : MonoBehaviour
     private void Update()
     {
         UpdateNameTagRotation();
-        UpdateMapIconRotation(); // ✅ Giữ rotation cố định mỗi frame
+        UpdateMapIconRotation(); //  Giữ rotation cố định mỗi frame
     }
 
     // ═══════════════════════════════════════════════
@@ -140,7 +140,7 @@ public class PlayerView : MonoBehaviour
     {
         if (mapIconCanvas == null) return;
 
-        // ✅ Set thẳng vào rotation world space — bất kể player xoay thế nào
+        //  Set thẳng vào rotation world space — bất kể player xoay thế nào
         mapIconCanvas.transform.rotation = MapIconFixedRotation;
     }
 } 

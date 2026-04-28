@@ -63,7 +63,7 @@ public class PaintingInfo : MonoBehaviour
 #pragma warning restore CS0618
         }
 
-        // ✅ Fallback tìm MaxPainting nếu chưa kéo thả
+        //  Fallback tìm MaxPainting nếu chưa kéo thả
         if (maxPainting == null)
         {
 #pragma warning disable CS0618
@@ -141,7 +141,7 @@ public class PaintingInfo : MonoBehaviour
         DisplayAuthor(painting);
         DisplayDescription(painting);
 
-        // ✅ Enable viewMaxButton khi có texture
+        //  Enable viewMaxButton khi có texture
         if (viewMaxButton != null)
             viewMaxButton.interactable = (texture != null);
 
@@ -178,7 +178,7 @@ public class PaintingInfo : MonoBehaviour
 
         OnPaintingInfoHidden?.Invoke();
 
-        // ✅ Ẩn MaxPainting nếu đang mở
+        //  Ẩn MaxPainting nếu đang mở
         if (maxPainting != null)
             maxPainting.Hide();
 
@@ -434,7 +434,7 @@ public class PaintingInfo : MonoBehaviour
                 paintingImage.sprite = sprite;
                 ScaleImageToFit(texture.width, texture.height);
 
-                // ✅ Enable viewMaxButton khi thumbnail load xong
+                //  Enable viewMaxButton khi thumbnail load xong
                 if (viewMaxButton != null)
                 {
                     currentTexture             = texture;

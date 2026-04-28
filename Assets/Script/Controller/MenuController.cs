@@ -33,7 +33,7 @@ public class MenuController : MonoBehaviour
     private List<GameObject> previewInstances = new List<GameObject>();
     private int              currentIndex     = 0;
 
-    // ✅ Mode đang được chọn
+    //  Mode đang được chọn
     private enum GameMode { None, MultiPlayer, SinglePlayer }
     private GameMode selectedMode = GameMode.None;
 
@@ -105,14 +105,14 @@ public class MenuController : MonoBehaviour
 
     private void BindEvents()
     {
-        // ✅ Mode selection events (không vào game)
+        //  Mode selection events (không vào game)
         view.OnMultiPlayerModeSelected  += HandleMultiPlayerModeSelected;
         view.OnSinglePlayerModeSelected += HandleSinglePlayerModeSelected;
 
-        // ✅ Start button event (vào game)
+        //  Start button event (vào game)
         view.OnStartButtonClicked += HandleStartButtonClicked;
 
-        // ✅ Avatar select button → mở panel
+        //  Avatar select button → mở panel
         view.OnAvatarSelectButtonClicked += HandleAvatarSelectButtonClicked;
 
         view.OnNameChanged += OnNameChanged;
@@ -123,7 +123,7 @@ public class MenuController : MonoBehaviour
         if (nextAvatarButton     != null) nextAvatarButton.onClick.AddListener(ShowNext);
         if (previousAvatarButton != null) previousAvatarButton.onClick.AddListener(ShowPrevious);
 
-        // ✅ Bind AvatarPanel events
+        //  Bind AvatarPanel events
         AvatarPanel panel = view.GetAvatarPanel();
         if (panel != null)
         {
@@ -424,7 +424,7 @@ public class MenuController : MonoBehaviour
     {
         if (showDebug) Debug.Log("[MenuController] ResetToMenuState called");
 
-        // ✅ Reset mode về None
+        //  Reset mode về None
         selectedMode = GameMode.None;
 
         model.SetJoinButtonState(true);
@@ -447,7 +447,7 @@ public class MenuController : MonoBehaviour
         }
 
         ShowMenuPanel();
-        if (showDebug) Debug.Log("[MenuController] Menu reset ✅");
+        if (showDebug) Debug.Log("[MenuController] Menu reset ");
     }
 
     // ════════════════════════════════════════════════

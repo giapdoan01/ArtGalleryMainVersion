@@ -77,14 +77,14 @@ public class GameManager : MonoBehaviour
 
         if (menuView != null)
         {
-            // ✅ Subscribe đúng event mới — chỉ để track mode
+            //  Subscribe đúng event mới — chỉ để track mode
             menuView.OnSinglePlayerModeSelected += HandleSinglePlayerMode;
             menuView.OnMultiPlayerModeSelected  += HandleMultiPlayerMode;
 
-            // ✅ Subscribe Start button — đây mới là lúc game thực sự bắt đầu
+            //  Subscribe Start button — đây mới là lúc game thực sự bắt đầu
             menuView.OnStartButtonClicked += HandleGameStarted;
 
-            if (showDebug) Debug.Log("[GameManager] Registered MenuView events ✅");
+            if (showDebug) Debug.Log("[GameManager] Registered MenuView events ");
         }
         else Debug.LogWarning("[GameManager] MenuView not found!");
     }
@@ -131,7 +131,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void HandleGameStarted()
     {
-        // ✅ Apply chat button visibility dựa trên mode đã chọn
+        //  Apply chat button visibility dựa trên mode đã chọn
         SetChatButtonVisible(!isSinglePlayerMode);
 
         if (showDebug) Debug.Log($"[GameManager] Game started — mode={(isSinglePlayerMode ? "Single" : "Multi")}, chatVisible={!isSinglePlayerMode}");
@@ -275,7 +275,7 @@ public class GameManager : MonoBehaviour
 
         isManuallyOpened = false;
 
-        // ✅ Reset mode về default khi leave
+        //  Reset mode về default khi leave
         isSinglePlayerMode = false;
 
         DetachFollowMapCamera();
@@ -358,7 +358,7 @@ public class GameManager : MonoBehaviour
         miniCam.transform.position    = new Vector3(-0.27f, 7.17f, -4.2f);
         miniCam.transform.eulerAngles = new Vector3(45f, 0f, 0f);
 
-        if (showDebug) Debug.Log("[GameManager] FollowMapCamera detached & reset ✅");
+        if (showDebug) Debug.Log("[GameManager] FollowMapCamera detached & reset ");
     }
 
     // ═══════════════════════════════════════════════

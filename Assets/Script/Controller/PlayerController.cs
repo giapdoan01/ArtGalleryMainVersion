@@ -99,7 +99,7 @@ public class PlayerController : MonoBehaviour
     {
         playerSessionId = sessionId;
 
-        // ✅ FIX: state.avatarIndex là float (Colyseus "number")
+        //  FIX: state.avatarIndex là float (Colyseus "number")
         //         Cast (int) khi truyền vào PlayerModel nếu cần dùng làm index
         playerModel = new PlayerModel(sessionId, state, isLocal, moveSpeed, rotationSpeed)
         {
@@ -120,7 +120,7 @@ public class PlayerController : MonoBehaviour
 
         if (showDebug)
             Debug.Log($"[PlayerController] Initialized: {state.username}" +
-                      $" | avatarIndex={(int)state.avatarIndex}" +  // ✅ cast (int) khi log
+                      $" | avatarIndex={(int)state.avatarIndex}" +  //  cast (int) khi log
                       $" | isLocal={isLocal}");
     }
 
@@ -202,7 +202,7 @@ public class PlayerController : MonoBehaviour
             if (cameraFollow == null) cameraFollow = FindObjectOfType<CameraFollow>();
         }
 
-        // ✅ Chỉ fire move khi CameraFollow xác nhận đây là click thuần (không drag)
+        //  Chỉ fire move khi CameraFollow xác nhận đây là click thuần (không drag)
         bool isCleanClick = cameraFollow != null
             ? cameraFollow.IsCleanClick
             : Input.GetMouseButtonUp(0); // fallback nếu không có CameraFollow

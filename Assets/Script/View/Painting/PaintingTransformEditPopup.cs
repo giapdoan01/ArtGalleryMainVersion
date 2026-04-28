@@ -46,7 +46,7 @@ public class PaintingTransformEditPopup : MonoBehaviour
     private float nextUpdateTime;
     private bool  isPopulating = false;
 
-    // ✅ Custom delegate — tránh Action<string> gây invoke_iiii mismatch trên WebGL IL2CPP
+    //  Custom delegate — tránh Action<string> gây invoke_iiii mismatch trên WebGL IL2CPP
     public delegate void GizmoModeChangedHandler(string mode);
     public GizmoModeChangedHandler onGizmoModeChanged;
 
@@ -68,7 +68,7 @@ public class PaintingTransformEditPopup : MonoBehaviour
         SetupInputFields();
         Hide();
 
-        // ✅ Subscribe bằng named method — không dùng lambda
+        //  Subscribe bằng named method — không dùng lambda
         onGizmoModeChanged += OnUpdateGizmoMode;
 
         if (showDebug)
@@ -102,7 +102,7 @@ public class PaintingTransformEditPopup : MonoBehaviour
 
     private void SetupInputFields()
     {
-        // ✅ Named method thay lambda — tránh anonymous closure gây signature mismatch trên WebGL
+        //  Named method thay lambda — tránh anonymous closure gây signature mismatch trên WebGL
         if (posXInput != null) posXInput.onValueChanged.AddListener(OnPosXChanged);
         if (posYInput != null) posYInput.onValueChanged.AddListener(OnPosYChanged);
         if (posZInput != null) posZInput.onValueChanged.AddListener(OnPosZChanged);
@@ -176,7 +176,7 @@ public class PaintingTransformEditPopup : MonoBehaviour
 
         UpdateStatus("Chỉnh sửa transform... (Drag gizmo hoặc nhập số)", Color.white);
 
-        // ✅ Invoke custom delegate — an toàn trên WebGL
+        //  Invoke custom delegate — an toàn trên WebGL
         paintingPrefab.onDisplayButton.Invoke(true);
 
         if (showDebug)
@@ -355,7 +355,7 @@ public class PaintingTransformEditPopup : MonoBehaviour
         originalRotation = newRotation;
         hasChanges       = false;
 
-        // ✅ Invoke custom delegate — an toàn trên WebGL
+        //  Invoke custom delegate — an toàn trên WebGL
         targetPaintingPrefab?.onDisplayButton.Invoke(false);
 
         Invoke(nameof(Hide), 1f);
@@ -381,7 +381,7 @@ public class PaintingTransformEditPopup : MonoBehaviour
                 Debug.Log("[PaintingTransformEditPopup] Cancelled — restored original transform");
         }
 
-        // ✅ Invoke custom delegate — an toàn trên WebGL
+        //  Invoke custom delegate — an toàn trên WebGL
         targetPaintingPrefab?.onDisplayButton.Invoke(false);
         Hide();
     }

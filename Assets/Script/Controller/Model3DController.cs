@@ -78,7 +78,7 @@ public class Model3DController : MonoBehaviour
     }
 
     /// <summary>
-    /// ✅ Gọi từ Model3DPrefab.OnInfoColliderClicked()
+    ///  Gọi từ Model3DPrefab.OnInfoColliderClicked()
     /// Truyền prefab reference để Model3DInfo biết target cho Preview camera
     /// </summary>
     public void ShowModel3DInfoWithPrefab(Model3D model3D, Texture2D texture, Model3DPrefab prefab)

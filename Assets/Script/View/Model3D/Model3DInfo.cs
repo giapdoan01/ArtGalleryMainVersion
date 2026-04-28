@@ -19,7 +19,7 @@ public class Model3DInfo : MonoBehaviour
     [SerializeField] private PreviewModel3D  previewModel3D;
 
     [Header("Panel Integration")]
-    [SerializeField] private PanelListItemVisitor panelListItemVisitor;   // ✅ thêm mới
+    [SerializeField] private PanelListItemVisitor panelListItemVisitor;   //  thêm mới
 
     [Header("Settings")]
     [SerializeField] private string languageCode = "vi";
@@ -55,7 +55,7 @@ public class Model3DInfo : MonoBehaviour
 #pragma warning restore CS0618
         }
 
-        // ✅ Auto-find nếu chưa assign
+        //  Auto-find nếu chưa assign
         if (panelListItemVisitor == null)
         {
 #pragma warning disable CS0618
@@ -88,7 +88,7 @@ public class Model3DInfo : MonoBehaviour
     {
         if (model3D == null) { Debug.LogError("[Model3DInfo] Model3D is null!"); return; }
 
-        // ✅ Báo PanelListItemVisitor hide ListItem/Chat trước
+        //  Báo PanelListItemVisitor hide ListItem/Chat trước
         if (panelListItemVisitor != null)
             panelListItemVisitor.HideForModel3DInfo();
 
@@ -167,7 +167,7 @@ public class Model3DInfo : MonoBehaviour
         currentPrefab = null;
         if (previewButton != null) previewButton.interactable = false;
 
-        // ✅ Báo PanelListItemVisitor restore lại ListItem/Chat
+        //  Báo PanelListItemVisitor restore lại ListItem/Chat
         if (panelListItemVisitor != null)
             panelListItemVisitor.RestoreAfterModel3DInfo();
 
