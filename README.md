@@ -167,7 +167,7 @@ Assets/
 
 The game connects to a REST backend to load gallery content.
 
-**Base URL:** `https://projects-admin.vr360.com.vn/api/phongtranh`
+**Base URL:** `https://your-api-domain.com/api/phongtranh`
 
 ### Data Models
 
