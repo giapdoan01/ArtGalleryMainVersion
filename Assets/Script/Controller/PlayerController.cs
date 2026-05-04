@@ -210,9 +210,9 @@ public class PlayerController : MonoBehaviour
         if (isCleanClick)
             TrySetMoveTarget();
 
-        // WASD cancel click-to-move
-        if ((Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A) ||
-             Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D)) &&
+        // Arrow keys cancel click-to-move
+        if ((Input.GetKey(KeyCode.UpArrow)    || Input.GetKey(KeyCode.DownArrow) ||
+             Input.GetKey(KeyCode.LeftArrow)  || Input.GetKey(KeyCode.RightArrow)) &&
             playerModel.IsMovingToTarget)
             playerModel.StopMovingToTarget();
     }
@@ -264,17 +264,17 @@ public class PlayerController : MonoBehaviour
 
     private void HandleMovement()
     {
-        // Chỉ đọc WASD, không dùng arrow keys
-        float h = (Input.GetKey(KeyCode.D) ? 1f : 0f) - (Input.GetKey(KeyCode.A) ? 1f : 0f);
-        float v = (Input.GetKey(KeyCode.W) ? 1f : 0f) - (Input.GetKey(KeyCode.S) ? 1f : 0f);
+        // Arrow keys di chuyển player
+        float h = (Input.GetKey(KeyCode.RightArrow) ? 1f : 0f) - (Input.GetKey(KeyCode.LeftArrow)  ? 1f : 0f);
+        float v = (Input.GetKey(KeyCode.UpArrow)    ? 1f : 0f) - (Input.GetKey(KeyCode.DownArrow)  ? 1f : 0f);
         bool hasInput = Mathf.Abs(h) > 0.1f || Mathf.Abs(v) > 0.1f;
 
-        if (hasInput) MoveWithWASD(h, v);
+        if (hasInput) MoveWithKeys(h, v);
         else if (playerModel.IsMovingToTarget) MoveToTarget();
         else SetIdle();
     }
 
-    private void MoveWithWASD(float h, float v)
+    private void MoveWithKeys(float h, float v)
     {
         Vector3 forward = mainCamera.transform.forward; forward.y = 0; forward.Normalize();
         Vector3 right = mainCamera.transform.right; right.y = 0; right.Normalize();

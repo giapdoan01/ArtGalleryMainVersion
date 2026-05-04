@@ -15,7 +15,7 @@ public class CameraFollow : MonoBehaviour
     [SerializeField] private float mouseSensitivity = 3f;
 
     [Header("Arrow Key Rotation")]
-    [SerializeField] private float arrowRotateSpeed = 90f; // độ/giây
+    [SerializeField] private float arrowRotateSpeed = 90f; 
 
     [Header("Camera Mode")]
     [SerializeField] private bool  firstPersonMode         = false;
@@ -108,21 +108,24 @@ public class CameraFollow : MonoBehaviour
             isDragging = false;
         }
 
-        // ── Arrow keys: xoay camera ───────────────────
-        float arrowH = (Input.GetKey(KeyCode.RightArrow) ? 1f : 0f) - (Input.GetKey(KeyCode.LeftArrow) ? 1f : 0f);
-        float arrowV = (Input.GetKey(KeyCode.UpArrow)    ? 1f : 0f) - (Input.GetKey(KeyCode.DownArrow) ? 1f : 0f);
-
-        if (Mathf.Abs(arrowH) > 0f)
-            currentYaw += arrowH * arrowRotateSpeed * Time.deltaTime;
-
-        if (Mathf.Abs(arrowV) > 0f)
+        // ── WASD: xoay camera ────────────────────────
+        if (!ChatUIManager.IsTyping)
         {
-            currentPitch -= arrowV * arrowRotateSpeed * Time.deltaTime;
-            currentPitch = Mathf.Clamp(
-                currentPitch,
-                firstPersonMode ? -80f : -20f,
-                firstPersonMode ?  80f :  60f
-            );
+            float wasdH = (Input.GetKey(KeyCode.D) ? 1f : 0f) - (Input.GetKey(KeyCode.A) ? 1f : 0f);
+            float wasdV = (Input.GetKey(KeyCode.W) ? 1f : 0f) - (Input.GetKey(KeyCode.S) ? 1f : 0f);
+
+            if (Mathf.Abs(wasdH) > 0f)
+                currentYaw += wasdH * arrowRotateSpeed * Time.deltaTime;
+
+            if (Mathf.Abs(wasdV) > 0f)
+            {
+                currentPitch -= wasdV * arrowRotateSpeed * Time.deltaTime;
+                currentPitch = Mathf.Clamp(
+                    currentPitch,
+                    firstPersonMode ? -80f : -20f,
+                    firstPersonMode ?  80f :  60f
+                );
+            }
         }
     }
 

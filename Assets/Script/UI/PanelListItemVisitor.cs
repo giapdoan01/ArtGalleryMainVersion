@@ -7,6 +7,7 @@ public class PanelListItemVisitor : MonoBehaviour
     [Header("Buttons")]
     [SerializeField] private Button displayListItemButton;
     [SerializeField] private Button hideListItemButton;
+    [SerializeField] private Button hideListItemButton2;
     [SerializeField] private Button openPaintingPanelButton;
     [SerializeField] private Button openModel3DPanelButton;
     [SerializeField] private Button openChatButton;
@@ -55,6 +56,7 @@ public class PanelListItemVisitor : MonoBehaviour
     [Header("Panel Integration")]
     [SerializeField] private PaintingInfo paintingInfo;
     [SerializeField] private Model3DInfo  model3DInfo;
+    [SerializeField] private ChatUIManager chatUIManager;
 
     [Header("Debug")]
     [SerializeField] private bool showDebug = false;
@@ -123,6 +125,7 @@ public class PanelListItemVisitor : MonoBehaviour
     {
         if (displayListItemButton   != null) displayListItemButton.onClick.RemoveListener(ShowListItemPanel);
         if (hideListItemButton      != null) hideListItemButton.onClick.RemoveListener(HideListItemPanel);
+        if (hideListItemButton2     != null) hideListItemButton2.onClick.RemoveListener(HideListItemPanel);
         if (openPaintingPanelButton != null) openPaintingPanelButton.onClick.RemoveListener(ShowPaintingPanel);
         if (openModel3DPanelButton  != null) openModel3DPanelButton.onClick.RemoveListener(ShowModel3DPanel);
         if (openChatButton          != null) openChatButton.onClick.RemoveListener(OpenChat);
@@ -139,6 +142,7 @@ public class PanelListItemVisitor : MonoBehaviour
     {
         AddListener(displayListItemButton,   "displayListItemButton",   ShowListItemPanel);
         AddListener(hideListItemButton,      "hideListItemButton",      HideListItemPanel);
+        AddListener(hideListItemButton2,     "hideListItemButton2",     HideListItemPanel);
         AddListener(openPaintingPanelButton, "openPaintingPanelButton", ShowPaintingPanel);
         AddListener(openModel3DPanelButton,  "openModel3DPanelButton",  ShowModel3DPanel);
         AddListener(openChatButton,          "openChatButton",          OpenChat);
@@ -209,6 +213,7 @@ public class PanelListItemVisitor : MonoBehaviour
         SetDisplayListItemBtnVisible(false);
         isChatVisible = true;
         AnimateTo(chatPanelRT, chatPanelShowPosition);
+        chatUIManager?.OnChatOpened();
 
         if (showDebug) Debug.Log("[PanelListItemVisitor] Chat → SHOW");
     }

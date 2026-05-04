@@ -120,6 +120,23 @@ public class PlayerListManager : MonoBehaviour
     {
         if (spawnedItems.ContainsKey(sessionId)) return;
 
+        // Xóa item cũ nếu cùng username nhưng sessionId khác (player out rồi vào lại)
+        string duplicateSessionId = null;
+        foreach (var kvp in spawnedItems)
+        {
+            var existingItem = kvp.Value?.GetComponent<PlayerListItem>();
+            if (existingItem != null && existingItem.PlayerName == playerName)
+            {
+                duplicateSessionId = kvp.Key;
+                break;
+            }
+        }
+        if (duplicateSessionId != null)
+        {
+            Destroy(spawnedItems[duplicateSessionId]);
+            spawnedItems.Remove(duplicateSessionId);
+        }
+
         bool isLocal = NetworkManager.Instance != null && sessionId == NetworkManager.Instance.SessionId;
 
         GameObject go = Instantiate(playerListItemPrefab, container);
