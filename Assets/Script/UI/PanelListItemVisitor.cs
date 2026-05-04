@@ -55,6 +55,7 @@ public class PanelListItemVisitor : MonoBehaviour
     [Header("Panel Integration")]
     [SerializeField] private PaintingInfo paintingInfo;
     [SerializeField] private Model3DInfo  model3DInfo;
+    [SerializeField] private ChatUIManager chatUIManager;
 
     [Header("Debug")]
     [SerializeField] private bool showDebug = false;
@@ -209,6 +210,7 @@ public class PanelListItemVisitor : MonoBehaviour
         SetDisplayListItemBtnVisible(false);
         isChatVisible = true;
         AnimateTo(chatPanelRT, chatPanelShowPosition);
+        chatUIManager?.OnChatOpened();
 
         if (showDebug) Debug.Log("[PanelListItemVisitor] Chat → SHOW");
     }

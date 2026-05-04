@@ -12,6 +12,11 @@ public class ChatUIManager : MonoBehaviour
     [SerializeField] private GameObject chatMessagePrefab;
     [SerializeField] private ScrollRect scrollRect;
 
+    [Header("Unread Badge")]
+    [SerializeField] private Image unreadMessageCountTextBorder;
+    [SerializeField] private TextMeshProUGUI unreadMessageCountText;
+    [SerializeField] private PanelListItemVisitor panelListItemVisitor;
+
     [Header("Settings")]
     [SerializeField] private int maxMessages = 50;
 
@@ -22,6 +27,9 @@ public class ChatUIManager : MonoBehaviour
     [SerializeField] private Color errorMessageColor = new Color(1f, 0.3f, 0.3f);
 
     private List<GameObject> messageObjects = new List<GameObject>();
+    private int unreadCount = 0;
+
+    public static bool IsTyping { get; private set; } = false;
 
     private void Start()
     {
@@ -30,6 +38,8 @@ public class ChatUIManager : MonoBehaviour
         if (chatContainer == null) Debug.LogError("[ChatUIManager] ChatContainer not assigned!");
         if (chatMessagePrefab == null) Debug.LogError("[ChatUIManager] ChatMessagePrefab not assigned!");
         if (scrollRect == null) Debug.LogWarning("[ChatUIManager] ScrollRect not assigned - auto scroll disabled");
+
+        SetUnreadBadgeVisible(false);
 
         // Setup buttons
         if (sendButton != null)
@@ -40,6 +50,8 @@ public class ChatUIManager : MonoBehaviour
         if (chatInput != null)
         {
             chatInput.onSubmit.AddListener((text) => SendMessage());
+            chatInput.onSelect.AddListener((_) => IsTyping = true);
+            chatInput.onDeselect.AddListener((_) => IsTyping = false);
         }
 
         // Subscribe to chat events
@@ -56,6 +68,7 @@ public class ChatUIManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        IsTyping = false;
         if (ChatNetworkHandler.Instance != null)
         {
             ChatNetworkHandler.Instance.OnChatMessageReceived -= OnChatMessageReceived;
@@ -96,7 +109,21 @@ public class ChatUIManager : MonoBehaviour
         Debug.Log($"[ChatUIManager] Received: [{username}] {message}");
 
         bool isMyMessage = (username == NetworkManager.Instance?.PlayerName);
+
+        bool chatHidden = panelListItemVisitor == null || !panelListItemVisitor.IsChatPanelVisible();
+        if (!isMyMessage && chatHidden)
+        {
+            unreadCount++;
+            UpdateUnreadBadge();
+        }
+
         DisplayChatMessage(username, message, isMyMessage);
+    }
+
+    public void OnChatOpened()
+    {
+        unreadCount = 0;
+        SetUnreadBadgeVisible(false);
     }
 
     private void OnChatError(string error)
@@ -209,6 +236,26 @@ public class ChatUIManager : MonoBehaviour
 
         Canvas.ForceUpdateCanvases();
         scrollRect.verticalNormalizedPosition = 0f;
+    }
+
+    private void UpdateUnreadBadge()
+    {
+        if (unreadCount > 0)
+        {
+            SetUnreadBadgeVisible(true);
+            if (unreadMessageCountText != null)
+                unreadMessageCountText.text = unreadCount > 99 ? "99+" : unreadCount.ToString();
+        }
+        else
+        {
+            SetUnreadBadgeVisible(false);
+        }
+    }
+
+    private void SetUnreadBadgeVisible(bool visible)
+    {
+        unreadMessageCountTextBorder?.gameObject.SetActive(visible);
+        unreadMessageCountText?.gameObject.SetActive(visible);
     }
 
     #endregion
