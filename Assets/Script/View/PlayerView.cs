@@ -4,8 +4,11 @@ using TMPro;
 
 public class PlayerView : MonoBehaviour
 {
-    [SerializeField] private Canvas          nameTagCanvas;
-    [SerializeField] private TextMeshProUGUI nameTagText;
+    [SerializeField] private Canvas               nameTagCanvas;
+    [SerializeField] private TextMeshProUGUI      nameTagText;
+
+    [Header("World-Space Chat Bubble")]
+    [SerializeField] private PlayerChatWorldSpace chatBubble;
 
     [Header("Map Icon")]
     [SerializeField] private Canvas mapIconCanvas;      //  Canvas của MapIcon
@@ -48,6 +51,9 @@ public class PlayerView : MonoBehaviour
         // Name tag
         if (nameTagText   != null) nameTagText.text = username;
         if (nameTagCanvas != null) nameTagCanvas.gameObject.SetActive(!isLocal);
+
+        // Chat bubble
+        chatBubble?.Initialize(username, isLocal);
 
         // Map icon: gán sprite theo loại player
         if (mapIconImage != null)
