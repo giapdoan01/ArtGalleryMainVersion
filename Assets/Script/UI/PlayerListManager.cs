@@ -11,6 +11,7 @@ public class PlayerListManager : MonoBehaviour
     [Header("Panel")]
     [SerializeField] private RectTransform playerListPanel;
     [SerializeField] private Button        openPlayerListButton;
+    [SerializeField] private Button        closePlayerListButton;
 
     [Header("Slide Settings")]
     [SerializeField] private float slideDuration = 0.35f;
@@ -35,15 +36,15 @@ public class PlayerListManager : MonoBehaviour
         if (openPlayerListButton != null)
             openPlayerListButton.onClick.AddListener(TogglePanel);
 
+        if (closePlayerListButton != null)
+            closePlayerListButton.onClick.AddListener(TogglePanel);
+
         // Panel và nút luôn bật mặc định
         if (playerListPanel != null)
             playerListPanel.gameObject.SetActive(true);
 
-        if (openPlayerListButton != null)
-            openPlayerListButton.gameObject.SetActive(true);
-
-        // Đặt trạng thái icon nút về ban đầu (không flip)
-        SetButtonFlip(false);
+        // Panel đang hiện → chỉ show closeButton
+        UpdateButtonVisibility();
     }
 
     private void OnEnable()
@@ -170,20 +171,20 @@ public class PlayerListManager : MonoBehaviour
         if (playerListPanel == null) return;
 
         if (_isHidden)
-            SlidePanel(_panelOriginPos, flipButton: false);       // đưa về vị trí ban đầu
+            SlidePanel(_panelOriginPos);
         else
-            SlidePanel(_panelOriginPos + new Vector2(slideOffset, 0f), flipButton: true); // trượt sang phải
+            SlidePanel(_panelOriginPos + new Vector2(slideOffset, 0f));
 
         _isHidden = !_isHidden;
+        UpdateButtonVisibility();
     }
 
-    private void SlidePanel(Vector2 target, bool flipButton)
+    private void SlidePanel(Vector2 target)
     {
         if (_slideCoroutine != null)
             StopCoroutine(_slideCoroutine);
 
         _slideCoroutine = StartCoroutine(SlideTo(target));
-        SetButtonFlip(flipButton);
     }
 
     private IEnumerator SlideTo(Vector2 target)
@@ -209,9 +210,13 @@ public class PlayerListManager : MonoBehaviour
         return t < 0.5f ? 4f * t * t * t : 1f - Mathf.Pow(-2f * t + 2f, 3f) / 2f;
     }
 
-    private void SetButtonFlip(bool flipped)
+    private void UpdateButtonVisibility()
     {
-        if (openPlayerListButton == null) return;
-        openPlayerListButton.transform.localEulerAngles = flipped ? new Vector3(0f, 0f, 90f) : new Vector3(0f, 0f, -90f);
+        // _isHidden chưa được flip tại thời điểm gọi hàm này nên dùng giá trị hiện tại
+        // panel đang ẩn (_isHidden=true) → show openButton, hide closeButton
+        // panel đang hiện (_isHidden=false) → hide openButton, show closeButton
+        bool panelVisible = !_isHidden;
+        openPlayerListButton?.gameObject.SetActive(!panelVisible);
+        closePlayerListButton?.gameObject.SetActive(panelVisible);
     }
 }
