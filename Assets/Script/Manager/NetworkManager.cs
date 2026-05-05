@@ -96,7 +96,11 @@ public class NetworkManager : MonoBehaviour
         if (avatarIndex <= 0)
             avatarIndex = PlayerPrefs.GetInt("AvatarIndex", 0);
 
-        if (showDebug) Debug.Log($"[NetworkManager] Connecting as '{PlayerName}', avatarIndex={avatarIndex}");
+        if (showDebug)
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes(PlayerName);
+            Debug.Log($"[NetworkManager] Connecting as '{PlayerName}' | UTF8 bytes: [{string.Join(",", bytes)}] | avatarIndex={avatarIndex}");
+        }
 
         var options = new Dictionary<string, object>
         {
